@@ -99,6 +99,7 @@ Stages must follow clinical decision time, not article paragraph order and not f
 - `Answer N` is the immediate next action or recommendation after `Record N`: order tests, perform imaging/biopsy, start/stop therapy, give fluids/antibiotics, admit, discharge, refer, schedule follow-up, or choose a treatment plan.
 - The result of `Answer N` belongs in `Record N+1`. If `Answer N` says to perform a biopsy, the biopsy pathology should not appear until the next record. If `Answer N` says to start treatment, the response/toxicity should not appear until the next record.
 - Do not let an answer skip over an intermediate decision. In acute presentations, evaluation/workup, immediate stabilization/admission, later diagnostic testing, final diagnosis, and long-term treatment planning are usually separate stages.
+- Diagnostic workup orders and diagnostic results must be separated even in short case reports. A suspicious skin lesion before biopsy is one stage whose answer is biopsy; the melanoma pathology from that biopsy starts the next record. A new mass or adenopathy before relapse workup is one stage whose answer is biopsy/imaging/molecular testing; confirmed metastasis, mutation status, and PET results start the next record.
 - Do not split just to mirror article headings. Merge text until the next real decision point, then stop the record before the decision action.
 - Final follow-up can summarize downstream outcome, but earlier non-final answers should not include later recurrence, progression, death, or post-discharge outcomes unless the stage is explicitly about follow-up planning.
 
@@ -272,3 +273,13 @@ The CR1 NEJM Case Record `A 57-Year-Old Woman with Melanoma and Fever` is a benc
 - preserve multiple laboratory tables as separate source table workbooks when they represent different clinical timepoints, for example baseline labs, emergency-department/severe fever workup, and later hospital-day labs;
 - include Figure 1 for imaging studies and Figure 2 for liver-biopsy pathology when they support the workup and final diagnosis;
 - if the manual reference workbook is versioned, normalize the final workbook filename to `CR1.xlsx` while preserving the manual file only as a benchmark input.
+
+## CR6 Lesson
+
+The CR6 Cureus case `A Patient's Journey With Modern Melanoma Therapy` is a benchmark for short melanoma therapy timelines where diagnostic orders and results are easy to collapse:
+
+- split the initial mole presentation before biopsy from the biopsy-proven melanoma record. Stage 1 should ask for skin examination and punch biopsy; Stage 2 should contain the superficial spreading melanoma pathology and ask for wide excision plus sentinel lymph-node mapping/resection;
+- split final node-negative pathology from the prior surgical answer. The next decision is staging and whether adjuvant therapy is indicated; for the historical 2020 context, observation/no adjuvant systemic therapy is appropriate for stage IIB node-negative disease;
+- split locoregional relapse symptoms from relapse workup results. New right-groin masses/subcutaneous nodules should lead to lymph-node biopsy, PET staging, and BRAF testing; confirmed metastatic melanoma, BRAF V600E status, and PET findings belong in the following record before systemic therapy selection;
+- split immune-checkpoint toxicity from next-line targeted therapy. Toxicity after nivolumab/ipilimumab should lead to stopping immunotherapy and prednisone; after toxicity resolution and known BRAF mutation, dabrafenib plus trametinib becomes the next systemic therapy;
+- keep later dabrafenib/trametinib side effects, axillary granulomatous adenopathy, and durable remission as final follow-up unless the user wants a longer surveillance-stage extraction.

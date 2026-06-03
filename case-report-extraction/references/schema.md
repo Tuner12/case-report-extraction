@@ -130,6 +130,7 @@ Rules:
 - `Answer N` gives the immediate action/recommendation that follows from `Record N`.
 - Results of the answer belong in `Record N+1`, not in the same answer. For example, if the answer is to perform biopsy, pathology appears in the next record; if the answer is to start therapy, response/toxicity appears in the next record.
 - Do not skip intermediate decisions. Acute evaluation/workup, initial stabilization/admission, later diagnostic testing, final diagnosis, and downstream treatment planning are usually separate stages.
+- Diagnostic workup orders and diagnostic results must be separated even in short case reports. A suspicious lesion before biopsy should not be in the same record as the biopsy pathology; a new relapse mass before workup should not be in the same record as confirmed metastasis, mutation status, and PET results.
 - Do not use final-diagnosis hindsight to write early records or answers.
 - Earlier non-final answers should not contain downstream recurrence, progression, death, or post-discharge outcomes.
 - It is acceptable for a record to mention prior treatments or prior decisions when they are now part of the patient's known history.
