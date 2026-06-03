@@ -16,6 +16,7 @@ WORKING_ONLY_NAMES = {
     "validation_report.json",
     "source_alignment_report.json",
     "evidence_highlight_report.json",
+    "figure_recrop_report.json",
 }
 
 

@@ -11,7 +11,7 @@ Required for the final delivery package:
 | File | Purpose |
 | --- | --- |
 | `CR<ID>.xlsx` | Main wide workbook with longitudinal stages |
-| `CR<ID>.pdf` | Evidence-highlighted PDF created from the uploaded article; highlights must mark source blocks supporting extracted records, answers, and final follow-up |
+| `CR<ID>.pdf` | Evidence-highlighted PDF created from the uploaded article; source sentences guide matching, but annotations should mark only supporting keywords or short phrases for extracted records, answers, and final follow-up |
 | `CR<ID>_figureN.png` | Extracted figure image or carefully cropped page render |
 | `CR<ID>_figureN.txt` | Caption for figure N |
 | `CR<ID>_tableN.xlsx` | Extracted table workbook |
@@ -27,9 +27,10 @@ Working-only extraction artifacts:
 | `source_original.pdf` | Optional verbatim working copy of the uploaded source PDF |
 | `validation_report.json` | Validator output |
 | `source_alignment_report.json` | Heuristic source-support audit |
-| `evidence_highlight_report.json` | Selected text blocks used to create the highlighted PDF |
+| `evidence_highlight_report.json` | Selected source sentences, keyword matches, and supporting text blocks used to create the highlighted PDF |
+| `figure_recrop_report.json` | Template-match report from conservative figure recropping |
 
-Keep working-only artifacts in the local working folder when useful, but exclude them from user-facing final zips. A final zip should contain the workbook, evidence-highlighted PDF, figure PNG/TXT assets, and table workbooks only. Do not include the original source PDF, `pages/`, `source_text/`, validation reports, source-alignment reports, evidence-highlight reports, or logs unless the user explicitly asks for an audit/debug package.
+Keep working-only artifacts in the local working folder when useful, but exclude them from user-facing final zips. A final zip should contain the workbook, evidence-highlighted PDF, figure PNG/TXT assets, and table workbooks only. Do not include the original source PDF, `pages/`, `source_text/`, validation reports, source-alignment reports, evidence-highlight reports, figure-recrop reports, or logs unless the user explicitly asks for an audit/debug package.
 
 If source text and stored extraction disagree, the source PDF wins. A file prefix match is not enough to prove that records, recommendations, figures, or tables belong to the same case.
 
@@ -77,13 +78,13 @@ Match the CR10/example workbook appearance:
 
 ## Evidence PDF Contract
 
-The final package PDF is not a raw copy of the uploaded article. Use `scripts/highlight_evidence_pdf.py` to create `CR<ID>.pdf` from the uploaded source PDF and the completed workbook:
+The final package PDF is not a raw copy of the uploaded article and should not use paragraph-wide highlights. Use `scripts/highlight_evidence_pdf.py` to create `CR<ID>.pdf` from the uploaded source PDF and the completed workbook:
 
 ```bash
 python scripts/highlight_evidence_pdf.py CR10/CR10.xlsx source_original.pdf --out CR10/CR10.pdf --report CR10/evidence_highlight_report.json
 ```
 
-Highlight `Record N`, `Answer N`, and final follow-up evidence. Generated clinical questions usually do not need highlighting because they are task prompts rather than article facts.
+Highlight `Record N`, `Answer N`, and final follow-up evidence. The script should use source sentences to select evidence but mark only the corresponding keywords or short phrases. Generated clinical questions usually do not need highlighting because they are task prompts rather than article facts.
 
 Compatibility:
 
@@ -105,6 +106,8 @@ Use the source article's chronology. For each stage:
 - Use source figure captions verbatim when possible, but do not quote large unrelated text.
 - Use the figure/table only when it materially supports the patient record.
 - For multi-panel figures, keep the source figure as one PNG unless the user asks for panels.
+- Figure crops must be conservative. Include complete left/right/top/bottom edges, panel labels, axes/scale bars, visible figure labels, and caption text when the example package style includes captions.
+- Do not accept tight crops. If content touches an image boundary or any side appears slightly cut off, recrop from rendered pages with `scripts/recrop_figures_with_padding.py` or manually add source-page margin.
 - For table extraction, create a separate `.xlsx` with a simple header row and source rows. Do not embed the table in the main workbook.
 - Link the resource from the stage where it first becomes clinically relevant.
 - Include diagnostic pathology figures when they support the diagnosis or staging.

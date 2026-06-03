@@ -20,7 +20,7 @@ Create a working folder named after the case id, for example `CR10/`. During ext
 Final deliverables:
 
 - `CR<ID>.xlsx`: main longitudinal workbook.
-- `CR<ID>.pdf`: evidence-highlighted PDF generated from the uploaded article. Highlight the source paragraphs or blocks that support the extracted `Record`, `Answer`, and final follow-up fields. Do not deliver an unmarked raw source PDF as the final package PDF.
+- `CR<ID>.pdf`: evidence-highlighted PDF generated from the uploaded article. Use source sentences to locate evidence, but highlight only the corresponding keywords or short phrases that support extracted `Record`, `Answer`, and final follow-up fields. Do not highlight whole paragraphs or deliver an unmarked raw source PDF as the final package PDF.
 - `CR<ID>_figureN.png`: cropped or page-rendered figure assets.
 - `CR<ID>_figureN.txt`: figure caption text when available.
 - `CR<ID>_tableN.xlsx`: one workbook per extracted source table.
@@ -33,7 +33,8 @@ Working-only artifacts:
 - `pages/`: rendered page PNGs when figure/table cropping needs visual inspection.
 - `validation_report.json`: final structural checks from `scripts/validate_case_folder.py`.
 - `source_alignment_report.json`: source-support audit when a source PDF is available.
-- `evidence_highlight_report.json`: selected PDF text blocks used to create the evidence-highlighted PDF.
+- `evidence_highlight_report.json`: selected source sentences, keyword matches, and supporting PDF text blocks used to create the evidence-highlighted PDF.
+- `figure_recrop_report.json`: template-match report from conservative figure recropping.
 
 ## Final Delivery Zip
 
@@ -45,7 +46,7 @@ The zip file shared with the user or committed as the final case package must co
 - `CR<ID>_figureN.txt`
 - `CR<ID>_tableN.xlsx`
 
-Do not include `source_original.pdf`, `pages/`, `source_text/`, `validation_report.json`, `source_alignment_report.json`, `evidence_highlight_report.json`, or other extraction logs in the final delivery zip unless the user explicitly asks for an audit/debug bundle.
+Do not include `source_original.pdf`, `pages/`, `source_text/`, `validation_report.json`, `source_alignment_report.json`, `evidence_highlight_report.json`, `figure_recrop_report.json`, or other extraction logs in the final delivery zip unless the user explicitly asks for an audit/debug bundle.
 
 Read `references/schema.md` before extracting a new PDF or normalizing an existing case.
 
@@ -59,11 +60,11 @@ Read `references/schema.md` before extracting a new PDF or normalizing an existi
    - `Question N`: the clinical decision question.
    - `Answer N`: the clinician action, recommendation, treatment, diagnostic test, or management decision that follows.
    - figure/table references in workbook rows 3 and 4.
-5. Extract figures and tables that are useful for the case state. Use original captions. If exact cropping is difficult, render the page and crop manually or save a page-level image with a clear filename, then document the limitation.
+5. Extract figures and tables that are useful for the case state. Use original captions. Figure crops must be conservative: include complete left/right/top/bottom edges, panel labels, axes/scale bars, visible figure labels, and caption text when the example package style includes captions. Do not make tight crops; use `scripts/recrop_figures_with_padding.py` or manual recropping from rendered pages if any edge is close to being cut off.
 6. Write `CR<ID>.xlsx` directly in the standard workbook format. Do not create JSON unless the user explicitly asks for it or an old JSON file must be normalized.
 7. Apply the canonical workbook style with `scripts/style_case_workbook.py` so the workbook matches the CR10/example package style.
 8. Run `scripts/audit_source_alignment.py` against the workbook and source text. Treat failures as a hard stop: records or answers may be from another case, over-paraphrased, or invented.
-9. Run `scripts/highlight_evidence_pdf.py` to create `CR<ID>.pdf` from the source PDF and workbook evidence. Inspect `evidence_highlight_report.json` and the rendered PDF if matches are weak.
+9. Run `scripts/highlight_evidence_pdf.py` to create `CR<ID>.pdf` from the source PDF and workbook evidence. It should use sentence-level evidence selection but keyword/short-phrase highlight annotations, not paragraph-wide highlights. Inspect `evidence_highlight_report.json` and the rendered PDF if matches are weak or visually too broad.
 10. Run `scripts/validate_case_folder.py` and fix missing links, empty stages, missing highlights, or schema mistakes.
 11. Package a clean delivery zip with `scripts/package_case_folder.py`. The working folder may keep the original source copy, `pages/`, `source_text/`, and reports for review, but the delivery zip must exclude them.
 
@@ -143,6 +144,12 @@ Create the evidence-highlighted PDF:
 python scripts/highlight_evidence_pdf.py CR10/CR10.xlsx source_original.pdf --out CR10/CR10.pdf --report CR10/evidence_highlight_report.json
 ```
 
+Recrop existing figure assets from rendered pages with safer margins:
+
+```bash
+python scripts/recrop_figures_with_padding.py CR10 --report CR10/figure_recrop_report.json
+```
+
 Validate the case folder:
 
 ```bash
@@ -173,7 +180,8 @@ Before finalizing:
 - Table workbooks contain source table values with headers.
 - Figure captions are saved in `.txt` files when available.
 - Source-alignment audit has no failed fields, or every warning is manually explained.
-- `CR<ID>.pdf` is an evidence-highlighted PDF with highlight annotations for the source paragraphs supporting the extracted records, answers, and final follow-up.
+- `CR<ID>.pdf` is an evidence-highlighted PDF with keyword/short-phrase highlight annotations guided by source sentences supporting the extracted records, answers, and final follow-up. Whole-paragraph highlights are not acceptable.
+- Figure PNGs include all source-image edges and labels. If a crop touches content at the left/right/top/bottom boundary, recrop with padding before final packaging.
 - Final delivery zips contain only workbook, evidence-highlighted PDF, figure PNG/TXT files, and table workbooks. Keep the original source PDF, source text, rendered pages, and validation reports outside the delivery zip.
 - The final report states any figure/table extraction limitations.
 

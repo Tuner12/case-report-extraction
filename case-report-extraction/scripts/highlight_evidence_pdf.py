@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create an evidence-highlighted PDF from a case workbook and source PDF."""
+"""Create a sentence/keyword-level evidence-highlighted PDF."""
 
 from __future__ import annotations
 
@@ -68,6 +68,26 @@ class Field:
 class Block:
     page_index: int
     rect: fitz.Rect
+    text: str
+    tokens: set[str]
+    norm: str
+
+
+@dataclass
+class Word:
+    page_index: int
+    rect: fitz.Rect
+    text: str
+    tokens: set[str]
+    block_no: int
+    line_no: int
+    word_no: int
+
+
+@dataclass
+class Sentence:
+    page_index: int
+    words: list[Word]
     text: str
     tokens: set[str]
     norm: str
@@ -222,13 +242,214 @@ def select_blocks(
     return selected
 
 
-def add_highlight(page: fitz.Page, rect: fitz.Rect, color: tuple[float, float, float], label: str) -> None:
-    padded = fitz.Rect(rect.x0 - 1, rect.y0 - 1, rect.x1 + 1, rect.y1 + 1)
-    annot = page.add_highlight_annot(padded)
+def page_words(page: fitz.Page, page_index: int) -> list[Word]:
+    words = []
+    for item in page.get_text("words"):
+        x0, y0, x1, y1, text, block_no, line_no, word_no = item[:8]
+        tokens = content_tokens(str(text))
+        words.append(
+            Word(
+                page_index=page_index,
+                rect=fitz.Rect(x0, y0, x1, y1),
+                text=str(text),
+                tokens=set(tokens),
+                block_no=int(block_no),
+                line_no=int(line_no),
+                word_no=int(word_no),
+            )
+        )
+    return words
+
+
+def words_in_rect(words: list[Word], rect: fitz.Rect) -> list[Word]:
+    return [word for word in words if word.rect.intersects(rect)]
+
+
+def split_sentences(words: list[Word]) -> list[Sentence]:
+    sentences = []
+    current = []
+    for word in words:
+        current.append(word)
+        stripped = word.text.strip()
+        if re.search(r"[.!?;]$", stripped) and len(current) >= 4:
+            text = " ".join(item.text for item in current)
+            sentences.append(
+                Sentence(
+                    page_index=current[0].page_index,
+                    words=current,
+                    text=text,
+                    tokens=set(content_tokens(text)),
+                    norm=normalize(text),
+                )
+            )
+            current = []
+    if current:
+        text = " ".join(item.text for item in current)
+        sentences.append(
+            Sentence(
+                page_index=current[0].page_index,
+                words=current,
+                text=text,
+                tokens=set(content_tokens(text)),
+                norm=normalize(text),
+            )
+        )
+    return [sentence for sentence in sentences if sentence.tokens]
+
+
+def sentence_candidates(
+    field: Field,
+    selected_blocks: list[dict],
+    page_word_cache: dict[int, list[Word]],
+) -> list[dict]:
+    field_tokens = set(unique_tokens(field.text))
+    candidates = []
+    if not field_tokens:
+        return candidates
+    field_numbers = {token for token in field_tokens if any(char.isdigit() for char in token)}
+    for item in selected_blocks:
+        block = item["block"]
+        words = words_in_rect(page_word_cache[block.page_index], block.rect)
+        for sentence in split_sentences(words):
+            overlap = field_tokens & sentence.tokens
+            if not overlap:
+                continue
+            phrase_count = phrase_hits(field.text, sentence.norm, size=4)
+            number_overlap = field_numbers & sentence.tokens
+            number_bonus = len(number_overlap) / max(len(field_numbers), 1) if field_numbers else 0.0
+            score = (
+                len(overlap)
+                + (2.0 * min(phrase_count, 3))
+                + (2.0 * number_bonus)
+                + item["score"]
+            )
+            candidates.append(
+                {
+                    "sentence": sentence,
+                    "block": block,
+                    "score": score,
+                    "block_score": item["score"],
+                    "overlap": overlap,
+                    "phrase_hits": phrase_count,
+                }
+            )
+    candidates.sort(key=lambda item: item["score"], reverse=True)
+    return candidates
+
+
+def select_sentences(
+    field: Field,
+    selected_blocks: list[dict],
+    page_word_cache: dict[int, list[Word]],
+    max_sentences: int,
+    min_gain: int,
+) -> list[dict]:
+    field_tokens = set(unique_tokens(field.text))
+    remaining = set(field_tokens)
+    selected = []
+    for item in sentence_candidates(field, selected_blocks, page_word_cache):
+        gain = remaining & item["overlap"]
+        if len(gain) < min_gain and item["phrase_hits"] == 0:
+            continue
+        selected.append(item)
+        remaining -= item["overlap"]
+        if len(selected) >= max_sentences:
+            break
+        if field_tokens and (len(field_tokens) - len(remaining)) / len(field_tokens) >= 0.75:
+            break
+    return selected
+
+
+def keyword_fallback(
+    field: Field,
+    selected_blocks: list[dict],
+    page_word_cache: dict[int, list[Word]],
+    limit: int,
+) -> list[dict]:
+    field_tokens = set(unique_tokens(field.text))
+    results = []
+    seen = set()
+    for item in selected_blocks:
+        block = item["block"]
+        for word in words_in_rect(page_word_cache[block.page_index], block.rect):
+            overlap = word.tokens & field_tokens
+            if not overlap:
+                continue
+            key = (word.page_index, word.block_no, word.line_no, word.word_no)
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append(
+                {
+                    "word": word,
+                    "block": block,
+                    "score": item["score"],
+                    "overlap": overlap,
+                }
+            )
+            if len(results) >= limit:
+                return results
+    return results
+
+
+def line_rects(words: list[Word], padding: float = 0.6) -> list[fitz.Rect]:
+    lines: dict[tuple[int, int], fitz.Rect] = {}
+    for word in words:
+        key = (word.block_no, word.line_no)
+        rect = fitz.Rect(word.rect)
+        if key in lines:
+            lines[key].include_rect(rect)
+        else:
+            lines[key] = rect
+    return [
+        fitz.Rect(rect.x0 - padding, rect.y0 - padding, rect.x1 + padding, rect.y1 + padding)
+        for rect in lines.values()
+    ]
+
+
+def evidence_word_runs(sentence: Sentence, field_tokens: set[str]) -> list[dict]:
+    hits = []
+    for word in sentence.words:
+        overlap = word.tokens & field_tokens
+        if overlap:
+            hits.append({"word": word, "overlap": overlap})
+    if not hits:
+        return []
+
+    runs = []
+    current_words = [hits[0]["word"]]
+    current_overlap = set(hits[0]["overlap"])
+    last = hits[0]["word"]
+    for hit in hits[1:]:
+        word = hit["word"]
+        same_line = (word.block_no, word.line_no) == (last.block_no, last.line_no)
+        close = word.word_no - last.word_no <= 2
+        if same_line and close:
+            current_words.append(word)
+            current_overlap |= hit["overlap"]
+        else:
+            runs.append({"words": current_words, "overlap": current_overlap})
+            current_words = [word]
+            current_overlap = set(hit["overlap"])
+        last = word
+    runs.append({"words": current_words, "overlap": current_overlap})
+    return runs
+
+
+def add_highlight(
+    page: fitz.Page,
+    rects: list[fitz.Rect],
+    color: tuple[float, float, float],
+    label: str,
+) -> int:
+    if not rects:
+        return 0
+    annot = page.add_highlight_annot(rects)
     annot.set_colors(stroke=color)
     annot.set_opacity(0.35)
     annot.set_info(content=label)
     annot.update()
+    return 1
 
 
 def main() -> None:
@@ -238,8 +459,11 @@ def main() -> None:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--report", type=Path)
     parser.add_argument("--max-blocks", type=int, default=3)
+    parser.add_argument("--max-sentences-per-field", type=int, default=5)
     parser.add_argument("--min-score", type=float, default=0.12)
     parser.add_argument("--min-gain", type=int, default=4)
+    parser.add_argument("--min-sentence-gain", type=int, default=2)
+    parser.add_argument("--keyword-fallback-limit", type=int, default=18)
     parser.add_argument("--include-questions", action="store_true")
     parser.add_argument("--allow-empty", action="store_true")
     args = parser.parse_args()
@@ -252,6 +476,7 @@ def main() -> None:
     case_id, fields = workbook_fields(workbook, include_questions=args.include_questions)
     doc = fitz.open(source_pdf)
     blocks = pdf_blocks(doc)
+    page_word_cache = {page_index: page_words(doc[page_index], page_index) for page_index in range(doc.page_count)}
 
     report = {
         "workbook": str(workbook),
@@ -259,6 +484,7 @@ def main() -> None:
         "annotated_pdf": str(out),
         "CRID": case_id,
         "field_count": len(fields),
+        "highlight_scope": "sentence_guided_keywords",
         "highlight_count": 0,
         "fields": [],
         "warnings": [],
@@ -275,23 +501,76 @@ def main() -> None:
         field_item = {"field": field.name, "kind": field.kind, "matches": []}
         if not selected:
             report["warnings"].append(f"No highlight match selected for {field.name}")
+        sentence_matches = select_sentences(
+            field,
+            selected,
+            page_word_cache,
+            max_sentences=args.max_sentences_per_field,
+            min_gain=args.min_sentence_gain,
+        )
+        if sentence_matches:
+            for item in sentence_matches:
+                sentence = item["sentence"]
+                page = doc[sentence.page_index]
+                run_count = 0
+                run_overlaps = set()
+                for run in evidence_word_runs(sentence, set(unique_tokens(field.text))):
+                    run_count += add_highlight(
+                        page,
+                        line_rects(run["words"]),
+                        COLORS.get(field.kind, COLORS["record"]),
+                        f"{case_id or workbook.stem} {field.name} keyword evidence",
+                    )
+                    run_overlaps |= run["overlap"]
+                report["highlight_count"] += run_count
+                field_item["matches"].append(
+                    {
+                        "page": sentence.page_index + 1,
+                        "scope": "sentence_guided_keywords",
+                        "keyword_annotation_count": run_count,
+                        "score": round(item["score"], 3),
+                        "block_score": round(item["block_score"], 3),
+                        "phrase_hits": item["phrase_hits"],
+                        "overlap_tokens": sorted(run_overlaps or item["overlap"])[:30],
+                        "text_excerpt": sentence.text[:500],
+                    }
+                )
+        else:
+            keyword_matches = keyword_fallback(
+                field,
+                selected,
+                page_word_cache,
+                limit=args.keyword_fallback_limit,
+            )
+            if not keyword_matches and selected:
+                report["warnings"].append(f"No sentence or keyword highlight selected for {field.name}")
+            for item in keyword_matches:
+                word = item["word"]
+                page = doc[word.page_index]
+                report["highlight_count"] += add_highlight(
+                    page,
+                    line_rects([word]),
+                    COLORS.get(field.kind, COLORS["record"]),
+                    f"{case_id or workbook.stem} {field.name} keyword evidence",
+                )
+                field_item["matches"].append(
+                    {
+                        "page": word.page_index + 1,
+                        "scope": "keyword",
+                        "score": round(item["score"], 3),
+                        "overlap_tokens": sorted(item["overlap"]),
+                        "text_excerpt": word.text,
+                    }
+                )
         for item in selected:
             block = item["block"]
-            page = doc[block.page_index]
-            add_highlight(
-                page,
-                block.rect,
-                COLORS.get(field.kind, COLORS["record"]),
-                f"{case_id or workbook.stem} {field.name} evidence",
-            )
-            report["highlight_count"] += 1
-            field_item["matches"].append(
+            field_item.setdefault("source_blocks", []).append(
                 {
                     "page": block.page_index + 1,
                     "score": round(item["score"], 3),
                     "phrase_hits": item["phrase_hits"],
                     "overlap_tokens": sorted(item["overlap"])[:30],
-                    "text_excerpt": block.text[:500],
+                    "text_excerpt": block.text[:300],
                 }
             )
         report["fields"].append(field_item)

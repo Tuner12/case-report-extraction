@@ -6,6 +6,8 @@ The skill is Excel-first: it creates a main `CR<ID>.xlsx` workbook, an evidence-
 
 Main workbooks use the CR10/example visual style: Calibri 16 pt, alternating blue/gray stage cells, yellow figure row, and green table row.
 
+Evidence PDFs use sentence-guided keyword or short-phrase highlights instead of whole-paragraph highlights. Figure crops are recropped conservatively from rendered pages when needed so panel labels, axes, captions, and image edges are not cut off.
+
 ## Install
 
 Clone the repository and copy the skill folder into your Codex skills directory:
@@ -34,7 +36,7 @@ Final delivery zips include:
 - `CR<ID>_figureN.txt`: figure caption
 - `CR<ID>_tableN.xlsx`: extracted source table, when the PDF contains tables
 
-During extraction, the working folder may also contain `source_original.pdf`, `source_text/`, rendered `pages/`, `validation_report.json`, `source_alignment_report.json`, and `evidence_highlight_report.json`. These are audit/debug artifacts and should not be included in the user-facing final zip unless explicitly requested.
+During extraction, the working folder may also contain `source_original.pdf`, `source_text/`, rendered `pages/`, `validation_report.json`, `source_alignment_report.json`, `evidence_highlight_report.json`, and `figure_recrop_report.json`. These are audit/debug artifacts and should not be included in the user-facing final zip unless explicitly requested.
 
 ## Contribute
 
