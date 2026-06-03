@@ -19,6 +19,10 @@ WORKING_ONLY_NAMES = {
     "source_leakage_report.json",
     "evidence_highlight_report.json",
     "figure_recrop_report.json",
+    "figure_asset_report.json",
+    "figure_contact_sheet.png",
+    "table_asset_report.json",
+    "table_asset_preview.md",
 }
 
 
@@ -59,7 +63,7 @@ def main() -> None:
     if not any(p.name == f"{case_id}.xlsx" for p in deliverables):
         raise SystemExit(f"Missing main workbook: {case_id}.xlsx")
     if not any(p.suffix.lower() == ".pdf" for p in deliverables):
-        raise SystemExit("Missing source PDF")
+        raise SystemExit(f"Missing final evidence-highlighted PDF: {case_id}.pdf")
 
     with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         zf.writestr(f"{case_id}/", "")

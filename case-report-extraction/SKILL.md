@@ -37,6 +37,10 @@ Working-only artifacts:
 - `source_leakage_report.json`: raw-source-copy audit for long contiguous text spans in workbook fields.
 - `evidence_highlight_report.json`: selected source sentences, keyword matches, and supporting PDF text blocks used to create the evidence-highlighted PDF.
 - `figure_recrop_report.json`: template-match report from conservative figure recropping.
+- `figure_asset_report.json`: automated figure crop and image-quality audit.
+- `figure_contact_sheet.png`: optional visual contact sheet for reviewing figure warnings.
+- `table_asset_report.json`: automated table workbook structure audit.
+- `table_asset_preview.md`: optional table preview for reviewing extracted rows and columns.
 
 ## Final Delivery Zip
 
@@ -48,7 +52,7 @@ The zip file shared with the user or committed as the final case package must co
 - `CR<ID>_figureN.txt`
 - `CR<ID>_tableN.xlsx`
 
-Do not include `source_original.pdf`, `pages/`, `source_text/`, `validation_report.json`, `stage_logic_report.json`, `source_alignment_report.json`, `source_leakage_report.json`, `evidence_highlight_report.json`, `figure_recrop_report.json`, or other extraction logs in the final delivery zip unless the user explicitly asks for an audit/debug bundle.
+Do not include `source_original.pdf`, `pages/`, `source_text/`, `validation_report.json`, `stage_logic_report.json`, `source_alignment_report.json`, `source_leakage_report.json`, `evidence_highlight_report.json`, `figure_recrop_report.json`, `figure_asset_report.json`, `figure_contact_sheet.png`, `table_asset_report.json`, `table_asset_preview.md`, or other extraction logs in the final delivery zip unless the user explicitly asks for an audit/debug bundle.
 
 Read `references/schema.md` before extracting a new PDF or normalizing an existing case. If the case id, title, or source resembles CR1, CR5, CR6, or a related melanoma benchmark, also read `references/case_lessons.md` for known stage-splitting traps.
 
@@ -63,7 +67,7 @@ Read `references/schema.md` before extracting a new PDF or normalizing an existi
    - `Answer N`: the clinician action, recommendation, treatment, diagnostic test, or management decision that follows.
    - figure/table references in workbook rows 3 and 4.
    When the question is not explicit in the article, draft `Record N` and `Answer N` first, then infer a concise decision-oriented `Question N` from that pair.
-5. Extract figures and tables that are useful for the case state. Use original captions. Figure crops must be conservative: include complete left/right/top/bottom edges, panel labels, axes/scale bars, visible figure labels, and caption text when the example package style includes captions. Do not make tight crops; use `scripts/recrop_figures_with_padding.py` or manual recropping from rendered pages if any edge is close to being cut off.
+5. Extract figures and tables that are useful for the case state. Use original captions. Figure crops must be conservative: include complete left/right/top/bottom edges, panel labels, axes/scale bars, visible figure labels, and caption text when the example package style includes captions. Do not make tight crops; use `scripts/recrop_figures_with_padding.py` or manual recropping from rendered pages if any edge is close to being cut off. Then run `scripts/audit_figure_assets.py` and `scripts/audit_table_assets.py`; treat figure `review_notes` as visual-review prompts and hard warnings as re-extraction prompts before final packaging.
 6. Write `CR<ID>.xlsx` directly in the standard workbook format. Do not create JSON unless the user explicitly asks for it or an old JSON file must be normalized.
 7. Apply the canonical workbook style with `scripts/style_case_workbook.py` so the workbook matches the CR10/example package style.
 8. Run `scripts/audit_stage_logic.py` against the workbook. Treat warnings as prompts to manually inspect temporal logic: do not let an answer jump ahead to a later result, and do not let a record include information that should only be known after the question.
@@ -212,6 +216,18 @@ Recrop existing figure assets from rendered pages with safer margins:
 python scripts/recrop_figures_with_padding.py CR10 --report CR10/figure_recrop_report.json
 ```
 
+Audit figure crops and create a contact sheet for visual review:
+
+```bash
+python scripts/audit_figure_assets.py CR10 --report CR10/figure_asset_report.json --contact-sheet CR10/figure_contact_sheet.png
+```
+
+Audit extracted table workbooks and create a row/column preview:
+
+```bash
+python scripts/audit_table_assets.py CR10 --report CR10/table_asset_report.json --preview CR10/table_asset_preview.md
+```
+
 Validate the case folder:
 
 ```bash
@@ -245,6 +261,8 @@ Before finalizing:
 - Stage-logic audit has been inspected; warnings are either fixed or explicitly understood.
 - Source-alignment audit has no failed fields, or every warning is manually explained.
 - Source-leakage audit has no long copied spans, or every warning is manually rewritten before packaging.
+- Figure-asset audit warnings and review notes have been inspected; edge-contact review notes are fixed with wider recrops unless the source figure is truly full-bleed.
+- Table-asset audit warnings have been inspected; empty, collapsed, merged-cell, or font warnings are fixed before packaging unless manually justified by the source table.
 - `CR<ID>.pdf` is an evidence-highlighted PDF with keyword/short-phrase highlight annotations guided by source sentences supporting the extracted records, answers, and final follow-up. Whole-paragraph highlights are not acceptable.
 - Figure PNGs include all source-image edges and labels. If a crop touches content at the left/right/top/bottom boundary, recrop with padding before final packaging.
 - Final delivery zips contain only workbook, evidence-highlighted PDF, figure PNG/TXT files, and table workbooks. Keep the original source PDF, source text, rendered pages, and validation reports outside the delivery zip.
