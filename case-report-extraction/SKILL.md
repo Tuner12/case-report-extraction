@@ -1,6 +1,6 @@
 ---
 name: case-report-extraction
-description: Extract longitudinal medical case reports from uploaded PDF articles into a standard case folder. Use when Codex needs to process case report PDFs, NEJM Case Records, oncology case reports, clinicopathological cases, or existing CR*.xlsx examples into patient-record/recommendation stages with figures, tables, workbook, and validation artifacts.
+description: Extract longitudinal medical case reports from uploaded PDF articles into a standard case folder. Use when Codex needs to process case report PDFs, NEJM Case Records, oncology case reports, clinicopathological cases, or existing CR*.xlsx examples into patient-record/recommendation stages with figures, tables, and workbook deliverables.
 ---
 
 # Case Report Extraction
@@ -13,20 +13,37 @@ Use the bundled scripts for mechanical work. Use clinical reasoning for the sema
 
 When running scripts in Codex, use the workspace dependency Python returned by `load_workspace_dependencies` when available. System Python may miss `pypdf` or `openpyxl`; without `pypdf`, `prepare_pdf.py` can still extract text through Poppler but cannot export annotation metadata.
 
-## Output Folder
+## Working Folder
 
-Create a folder named after the case id, for example `CR10/`, with these files when available:
+Create a working folder named after the case id, for example `CR10/`. During extraction, this folder may contain both final deliverables and temporary audit material.
+
+Final deliverables:
 
 - `CR<ID>.xlsx`: main longitudinal workbook.
-- `CR<ID>_<source-title>.pdf`: original source PDF copied into the folder.
+- source `.pdf`: original uploaded article copied verbatim into the folder. Preserve any highlights, annotations, or comments already embedded in the uploaded PDF; do not replace the PDF with rendered page images.
 - `CR<ID>_figureN.png`: cropped or page-rendered figure assets.
 - `CR<ID>_figureN.txt`: figure caption text when available.
 - `CR<ID>_tableN.xlsx`: one workbook per extracted source table.
+
+Working-only artifacts:
+
 - `source_text/`: page text and metadata from `scripts/prepare_pdf.py`.
 - `source_text/annotations.json`: PDF highlight/stamp metadata when annotations exist.
 - `pages/`: rendered page PNGs when figure/table cropping needs visual inspection.
 - `validation_report.json`: final structural checks from `scripts/validate_case_folder.py`.
 - `source_alignment_report.json`: source-support audit when a source PDF is available.
+
+## Final Delivery Zip
+
+The zip file shared with the user or committed as the final case package must contain only the case folder and final deliverables:
+
+- `CR<ID>.xlsx`
+- source `.pdf`
+- `CR<ID>_figureN.png`
+- `CR<ID>_figureN.txt`
+- `CR<ID>_tableN.xlsx`
+
+Do not include `pages/`, `source_text/`, `validation_report.json`, `source_alignment_report.json`, or other extraction logs in the final delivery zip unless the user explicitly asks for an audit/debug bundle.
 
 Read `references/schema.md` before extracting a new PDF or normalizing an existing case.
 
@@ -44,6 +61,7 @@ Read `references/schema.md` before extracting a new PDF or normalizing an existi
 6. Write `CR<ID>.xlsx` directly in the standard workbook format. Do not create JSON unless the user explicitly asks for it or an old JSON file must be normalized.
 7. Run `scripts/audit_source_alignment.py` against the workbook and source text. Treat failures as a hard stop: records or answers may be from another case, over-paraphrased, or invented.
 8. Run `scripts/validate_case_folder.py` and fix missing links, empty stages, or schema mistakes.
+9. Package a clean delivery zip with `scripts/package_case_folder.py`. The working folder may keep `pages/`, `source_text/`, and reports for review, but the delivery zip must exclude them.
 
 If the PDF contains annotations or highlights, inspect `source_text/annotations.json` and rendered pages. Use highlights as extraction cues only; do not assume color meanings across PDFs and do not let annotations override source text.
 
@@ -104,6 +122,12 @@ Validate the case folder:
 python scripts/validate_case_folder.py CR10 --workbook CR10/CR10.xlsx
 ```
 
+Package the final user-facing zip:
+
+```bash
+python scripts/package_case_folder.py CR10 --out CR10.zip
+```
+
 Legacy JSON helpers exist only for conversion work:
 
 ```bash
@@ -122,6 +146,7 @@ Before finalizing:
 - Table workbooks contain source table values with headers.
 - Figure captions are saved in `.txt` files when available.
 - Source-alignment audit has no failed fields, or every warning is manually explained.
+- Final delivery zips contain only workbook, original PDF, figure PNG/TXT files, and table workbooks. Keep source text, rendered pages, and validation reports outside the delivery zip.
 - The final report states any figure/table extraction limitations.
 
 Do not invent facts, dates, staging, mutation status, treatment names, or outcomes. If the PDF omits timing, say that the exact date is not stated.

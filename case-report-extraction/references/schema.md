@@ -6,17 +6,17 @@ Each case folder represents one source article and one case id such as `CR3` or 
 
 Use the `CRID` field in the workbook as the authoritative case id. Some legacy examples have mismatched filename prefixes; preserve existing resource filenames during normalization unless the user asks to repair filenames.
 
-Required for a complete extraction:
+Required for the final delivery package:
 
 | File | Purpose |
 | --- | --- |
 | `CR<ID>.xlsx` | Main wide workbook with longitudinal stages |
-| source `.pdf` | Original article |
+| source `.pdf` | Original uploaded article, copied verbatim so embedded highlights/annotations are preserved |
 | `CR<ID>_figureN.png` | Extracted figure image or carefully cropped page render |
 | `CR<ID>_figureN.txt` | Caption for figure N |
 | `CR<ID>_tableN.xlsx` | Extracted table workbook |
 
-Optional but recommended:
+Working-only extraction artifacts:
 
 | File/folder | Purpose |
 | --- | --- |
@@ -26,6 +26,8 @@ Optional but recommended:
 | `source_text/annotations.json` | PDF annotation metadata from the source file |
 | `validation_report.json` | Validator output |
 | `source_alignment_report.json` | Heuristic source-support audit |
+
+Keep working-only artifacts in the local working folder when useful, but exclude them from user-facing final zips. A final zip should mirror the example packages: workbook, original PDF, figure PNG/TXT assets, and table workbooks only. Do not include `pages/`, `source_text/`, validation reports, source-alignment reports, or logs unless the user explicitly asks for an audit/debug package.
 
 If source text and stored extraction disagree, the source PDF wins. A file prefix match is not enough to prove that records, recommendations, figures, or tables belong to the same case.
 

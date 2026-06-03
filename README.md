@@ -24,14 +24,15 @@ Ask Codex to use the skill on a PDF:
 Use $case-report-extraction to extract this case report PDF into a complete case folder.
 ```
 
-Expected outputs include:
+Final delivery zips include:
 
 - `CR<ID>.xlsx`: longitudinal case workbook
+- source `.pdf`: original uploaded PDF, preserved verbatim
 - `CR<ID>_figureN.png`: extracted figure image
 - `CR<ID>_figureN.txt`: figure caption
 - `CR<ID>_tableN.xlsx`: extracted source table, when the PDF contains tables
-- `source_text/`: extracted PDF text and metadata
-- `source_alignment_report.json`: heuristic source-support audit
+
+During extraction, the working folder may also contain `source_text/`, rendered `pages/`, `validation_report.json`, and `source_alignment_report.json`. These are audit/debug artifacts and should not be included in the user-facing final zip unless explicitly requested.
 
 ## Contribute
 
