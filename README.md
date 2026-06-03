@@ -4,6 +4,8 @@ Codex skill for extracting longitudinal medical case reports from PDF articles i
 
 The skill is Excel-first: it creates a main `CR<ID>.xlsx` workbook, linked figure captions, extracted figure images, and optional source tables. Legacy JSON helper scripts are included only for conversion of old datasets.
 
+Main workbooks use the CR10/example visual style: Calibri 16 pt, alternating blue/gray stage cells, yellow figure row, and green table row.
+
 ## Install
 
 Clone the repository and copy the skill folder into your Codex skills directory:

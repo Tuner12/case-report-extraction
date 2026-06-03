@@ -59,9 +59,10 @@ Read `references/schema.md` before extracting a new PDF or normalizing an existi
    - figure/table references in workbook rows 3 and 4.
 5. Extract figures and tables that are useful for the case state. Use original captions. If exact cropping is difficult, render the page and crop manually or save a page-level image with a clear filename, then document the limitation.
 6. Write `CR<ID>.xlsx` directly in the standard workbook format. Do not create JSON unless the user explicitly asks for it or an old JSON file must be normalized.
-7. Run `scripts/audit_source_alignment.py` against the workbook and source text. Treat failures as a hard stop: records or answers may be from another case, over-paraphrased, or invented.
-8. Run `scripts/validate_case_folder.py` and fix missing links, empty stages, or schema mistakes.
-9. Package a clean delivery zip with `scripts/package_case_folder.py`. The working folder may keep `pages/`, `source_text/`, and reports for review, but the delivery zip must exclude them.
+7. Apply the canonical workbook style with `scripts/style_case_workbook.py` so the workbook matches the CR10/example package style.
+8. Run `scripts/audit_source_alignment.py` against the workbook and source text. Treat failures as a hard stop: records or answers may be from another case, over-paraphrased, or invented.
+9. Run `scripts/validate_case_folder.py` and fix missing links, empty stages, or schema mistakes.
+10. Package a clean delivery zip with `scripts/package_case_folder.py`. The working folder may keep `pages/`, `source_text/`, and reports for review, but the delivery zip must exclude them.
 
 If the PDF contains annotations or highlights, inspect `source_text/annotations.json` and rendered pages. Use highlights as extraction cues only; do not assume color meanings across PDFs and do not let annotations override source text.
 
@@ -94,6 +95,16 @@ Use these headers for the standard format:
 
 `CRID`, then repeating `Record N`, `Question N`, `Answer N`, followed by `Final follow up` or `Final output` when needed.
 
+Workbook style must match the CR10/example packages:
+
+- Main workbook font: Calibri 16 pt, black text. Do not leave cells in the default Chinese fallback font such as Songti.
+- Row 1: bold headers, no fill.
+- Row 2: thin borders and wrapped text; stage triples alternate `#DEEBF7` blue and `#F2F2F2` light gray, starting with blue for Record/Question/Answer 1.
+- Row 3: figures row, `#FFF2CC` fill.
+- Row 4: tables row, `#E2F0D9` fill.
+- Use `scripts/style_case_workbook.py CR<ID>/CR<ID>.xlsx` after writing the workbook.
+- For extracted table workbooks, use explicit Calibri font and avoid colored header fills unless reproducing a source table requires them.
+
 Compatibility notes:
 
 - Existing examples may use `Anwser 4`; scripts accept it and can reproduce it.
@@ -120,6 +131,13 @@ Validate the case folder:
 
 ```bash
 python scripts/validate_case_folder.py CR10 --workbook CR10/CR10.xlsx
+```
+
+Style the workbook:
+
+```bash
+python scripts/style_case_workbook.py CR10/CR10.xlsx
+python scripts/style_case_workbook.py CR10/CR10_table1.xlsx --kind table
 ```
 
 Package the final user-facing zip:

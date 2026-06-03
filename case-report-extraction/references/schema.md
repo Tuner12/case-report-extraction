@@ -61,6 +61,18 @@ tables | ... | CR5_table1.xlsx | ...
 
 Place each table list in the `Record N` column of the consultation it supports.
 
+## Workbook Style Contract
+
+Match the CR10/example workbook appearance:
+
+- Use Calibri 16 pt black text in the main workbook, including headers and resource rows. Do not leave default Chinese fallback fonts such as Songti.
+- Row 1 has bold headers and no fill.
+- Row 2 has wrapped text, thin borders, and alternating stage-group fills: `#DEEBF7` for stage 1, `#F2F2F2` for stage 2, alternating by Record/Question/Answer triplet.
+- Row 3 is the figures row with `#FFF2CC` fill and thin borders.
+- Row 4 is the tables row with `#E2F0D9` fill and thin borders.
+- Use `scripts/style_case_workbook.py` after creating or converting a workbook.
+- Extracted table workbooks should use an explicit Calibri font and avoid unrelated colored fills.
+
 Compatibility:
 
 - Existing example workbooks include `Anwser 4`; accept it. The exporter reproduces this typo by default to match legacy files.

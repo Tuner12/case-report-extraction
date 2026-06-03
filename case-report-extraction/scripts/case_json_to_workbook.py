@@ -12,6 +12,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font
 from openpyxl.utils import get_column_letter
 
+from style_case_workbook import style_main_workbook
+
 
 def consultation_items(data: dict) -> list[tuple[int, dict]]:
     items = []
@@ -125,6 +127,7 @@ def main() -> None:
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     wb.save(args.out)
+    style_main_workbook(args.out)
     print(str(args.out))
 
 
