@@ -49,6 +49,8 @@ figures | CR5_figure1.png, CR5_figure2.png | ...
 
 Place each figure list in the `Record N` column of the consultation it supports.
 
+Compatibility: human workbooks may write a figure reference as `CR6_figure1.png (CR6_figure1.txt)` to show the caption file alongside the image. Accept this format and validate both files when present.
+
 Row 4 contains table references:
 
 ```text

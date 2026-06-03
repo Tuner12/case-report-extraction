@@ -31,8 +31,8 @@ def split_resource_names(value) -> list[str]:
         return []
     names = []
     for item in str(value).split(","):
-        name = item.strip()
-        if name:
+        item = item.strip()
+        for name in re.findall(r"[\w.-]+\.(?:png|jpg|jpeg|txt|xlsx|xlsm|pdf)", item, flags=re.IGNORECASE):
             names.append(Path(name).name)
     return names
 
