@@ -1,4 +1,4 @@
 interface:
   display_name: "Case Report Extraction"
-  short_description: "Extract longitudinal case reports from PDFs"
-  default_prompt: "Use $case-report-extraction to extract a medical case report PDF into the standard case folder with workbook, JSON, figures, and tables."
+  short_description: "Extract staged case-report workbooks"
+  default_prompt: "Use $case-report-extraction to extract a medical case report PDF into a clean case folder with staged workbook, evidence-highlighted PDF, figures, captions, and tables."

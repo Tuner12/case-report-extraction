@@ -50,7 +50,7 @@ The zip file shared with the user or committed as the final case package must co
 
 Do not include `source_original.pdf`, `pages/`, `source_text/`, `validation_report.json`, `stage_logic_report.json`, `source_alignment_report.json`, `source_leakage_report.json`, `evidence_highlight_report.json`, `figure_recrop_report.json`, or other extraction logs in the final delivery zip unless the user explicitly asks for an audit/debug bundle.
 
-Read `references/schema.md` before extracting a new PDF or normalizing an existing case.
+Read `references/schema.md` before extracting a new PDF or normalizing an existing case. If the case id, title, or source resembles CR1, CR5, CR6, or a related melanoma benchmark, also read `references/case_lessons.md` for known stage-splitting traps.
 
 ## Workflow
 
@@ -252,38 +252,6 @@ Before finalizing:
 
 Do not invent facts, dates, staging, mutation status, treatment names, or outcomes. If the PDF omits timing, say that the exact date is not stated.
 
-## CR5 Lesson
+## Case Lessons
 
-The CR5 PDF `Unusual Morphological Presentation of Cutaneous Malignant Melanoma` should be learned from the PDF and figure/table assets, not from accidental JSON files in the example package. For this PDF:
-
-- use Figure 1 for the initial lesion morphology and Figure 2 for rapid nodular progression;
-- consider Figure 3 as diagnostic pathology support when staging/diagnosis is discussed;
-- do not add lab tables unless the PDF actually contains those laboratory values;
-- keep the extraction short if the PDF only supports presentation, diagnostic workup, oncology referral/chemotherapy, and death during chemotherapy.
-
-## CR1 Lesson
-
-The CR1 NEJM Case Record `A 57-Year-Old Woman with Melanoma and Fever` is a benchmark for cases with repeated treatment interruption and multiple laboratory snapshots:
-
-- keep the longitudinal split around adjuvant dabrafenib/trametinib initiation, repeated pyrexia episodes, emergency evaluation, hospital course, liver biopsy, final drug-induced liver injury diagnosis, and future melanoma management;
-- do not merge the emergency-department workup, initial admission management, and later hospital-day diagnostic reasoning into one stage. A manual-like seven-stage split is:
-  1. initial scalp lesion, biopsy, wide excision, lymph-node dissection, stage IIIC melanoma, and BRAF V600E mutation;
-  2. oncology visit for dabrafenib/trametinib initiation, baseline laboratory table, and fever/nausea after the first dose;
-  3. first treatment interruption/rechallenge followed by recurrent fever with normal liver, kidney, and blood-count testing;
-  4. second interruption/rechallenge followed by the third persistent fever episode, symptoms, exposure/social history, and referral to the emergency department; the answer should request physical examination, laboratory/microbiology testing, and imaging;
-  5. emergency-department vital signs, examination, laboratory abnormalities, negative respiratory viral testing, and ultrasound/CT findings; the answer should be fluids, broad-spectrum antibiotics, cultures, and admission;
-  6. hospital-day course, worsening liver tests, liver biopsy, pathology, and negative infectious studies; the answer should identify BRAF-MEK inhibitor-related drug-induced liver injury;
-  7. severe complicated pyrexia syndrome, future melanoma options, decision to avoid further targeted therapy, abdominal-pain endoscopy, and next treatment plan;
-- preserve multiple laboratory tables as separate source table workbooks when they represent different clinical timepoints, for example baseline labs, emergency-department/severe fever workup, and later hospital-day labs;
-- include Figure 1 for imaging studies and Figure 2 for liver-biopsy pathology when they support the workup and final diagnosis;
-- if the manual reference workbook is versioned, normalize the final workbook filename to `CR1.xlsx` while preserving the manual file only as a benchmark input.
-
-## CR6 Lesson
-
-The CR6 Cureus case `A Patient's Journey With Modern Melanoma Therapy` is a benchmark for short melanoma therapy timelines where diagnostic orders and results are easy to collapse:
-
-- split the initial mole presentation before biopsy from the biopsy-proven melanoma record. Stage 1 should ask for skin examination and punch biopsy; Stage 2 should contain the superficial spreading melanoma pathology and ask for wide excision plus sentinel lymph-node mapping/resection;
-- split final node-negative pathology from the prior surgical answer. The next decision is staging and whether adjuvant therapy is indicated; for the historical 2020 context, observation/no adjuvant systemic therapy is appropriate for stage IIB node-negative disease;
-- split locoregional relapse symptoms from relapse workup results. New right-groin masses/subcutaneous nodules should lead to lymph-node biopsy, PET staging, and BRAF testing; confirmed metastatic melanoma, BRAF V600E status, and PET findings belong in the following record before systemic therapy selection;
-- split immune-checkpoint toxicity from next-line targeted therapy. Toxicity after nivolumab/ipilimumab should lead to stopping immunotherapy and prednisone; after toxicity resolution and known BRAF mutation, dabrafenib plus trametinib becomes the next systemic therapy;
-- keep later dabrafenib/trametinib side effects, axillary granulomatous adenopathy, and durable remission as final follow-up unless the user wants a longer surveillance-stage extraction.
+Known benchmark-specific traps live in `references/case_lessons.md`. Load it only when the current PDF or benchmark package resembles those cases.
