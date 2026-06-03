@@ -1,4 +1,4 @@
-# Case Report Extraction Skill
+# Case Report Extraction
 
 Codex skill for extracting longitudinal medical case reports from PDF articles into a standard case folder.
 
@@ -9,9 +9,9 @@ The skill is Excel-first: it creates a main `CR<ID>.xlsx` workbook, linked figur
 Clone the repository and copy the skill folder into your Codex skills directory:
 
 ```bash
-git clone https://github.com/Tuner12/case-report-extraction-skill.git
+git clone https://github.com/Tuner12/case-report-extraction.git
 mkdir -p ~/.codex/skills
-cp -R case-report-extraction-skill/case-report-extraction ~/.codex/skills/
+cp -R case-report-extraction/case-report-extraction ~/.codex/skills/
 ```
 
 Restart Codex or reload skills after installation.
