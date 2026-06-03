@@ -62,6 +62,7 @@ Read `references/schema.md` before extracting a new PDF or normalizing an existi
    - `Question N`: the clinical decision question.
    - `Answer N`: the clinician action, recommendation, treatment, diagnostic test, or management decision that follows.
    - figure/table references in workbook rows 3 and 4.
+   When the question is not explicit in the article, draft `Record N` and `Answer N` first, then infer a concise decision-oriented `Question N` from that pair.
 5. Extract figures and tables that are useful for the case state. Use original captions. Figure crops must be conservative: include complete left/right/top/bottom edges, panel labels, axes/scale bars, visible figure labels, and caption text when the example package style includes captions. Do not make tight crops; use `scripts/recrop_figures_with_padding.py` or manual recropping from rendered pages if any edge is close to being cut off.
 6. Write `CR<ID>.xlsx` directly in the standard workbook format. Do not create JSON unless the user explicitly asks for it or an old JSON file must be normalized.
 7. Apply the canonical workbook style with `scripts/style_case_workbook.py` so the workbook matches the CR10/example package style.
@@ -131,6 +132,7 @@ The workbook must be a clinical abstraction, not a source-text cache. This matte
 - Questions are generated decision prompts, not source quotations.
 - Working files may contain source text for local audit and PDF highlighting, but final zips must not include `source_text/`, reports, or raw evidence excerpts.
 - If a downstream tool/RAG call is needed, pass the rewritten workbook content and resource filenames, not `source_text/full_text.txt`, source paragraphs, or `evidence_highlight_report.json`.
+- Remove doctor names, speaker labels, author names, and institutional speaker attributions from workbook fields unless the identity itself is clinically relevant. Preserve the clinical role only when useful, for example "oncology team" or "pathology review," not "Dr. X".
 
 ## Workbook Format
 
@@ -161,6 +163,7 @@ Compatibility notes:
 - Ignore example JSON files unless the user explicitly asks to inspect or convert them.
 - Human benchmark packages may use versioned workbook names such as `CR1_v1.0_GWan_Ruiz_NHao.xlsx`. Use these files as references when comparing or normalizing manual extractions, but final generated packages must still emit the main workbook as `CR<ID>.xlsx`.
 - Older CR3-style files may use `Patient record N` and `Clinician recommendation N`; normalize these into the standard stage schema.
+- Legacy templates may refer to `Patient N` blocks. Move treatment recommendations into `Answer N`; move future clinical decisions, follow-up plans, or "see back/discuss later" content into `Record N+1` unless it is the final follow-up.
 - If filenames and the workbook `CRID` disagree, treat `CRID` as authoritative and preserve existing resource filenames unless the user asks to rename.
 - If source PDF content and workbook content disagree, treat the source PDF as authoritative. Existing example packages can contain cross-case contamination; repair the workbook instead of carrying the mismatch forward.
 
@@ -235,6 +238,7 @@ Before finalizing:
 - Every non-final stage has a non-empty patient record and management answer.
 - Questions are decision-oriented, not generic summaries.
 - Records use article facts and preserve clinically important dates, measurements, diagnoses, drugs, procedures, mutations, response, toxicity, and outcomes.
+- Workbook fields remove doctor names and speaker labels while preserving clinically relevant roles.
 - Figures/tables listed in the workbook exist in the case folder.
 - Table workbooks contain source table values with headers.
 - Figure captions are saved in `.txt` files when available.

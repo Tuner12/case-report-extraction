@@ -66,6 +66,8 @@ tables | ... | CR5_table1.xlsx | ...
 
 Place each table list in the `Record N` column of the consultation it supports.
 
+Generate questions as concise decision prompts. If the source article does not state the question explicitly, infer `Question N` after drafting `Record N` and `Answer N`, using only the clinical decision implied by that record-answer pair.
+
 ## Workbook Style Contract
 
 Match the CR10/example workbook appearance:
@@ -96,6 +98,7 @@ Workbook fields are the RAG-facing clinical abstraction. They should be source-s
 - Keep clinically important anchors exactly: age, sex, relative timing, dates, drug names, doses, disease stage, mutation status, measurements, laboratory values, diagnostic tests, pathology terms, treatment response, toxicity, and outcomes.
 - Do not copy whole source sentences or paragraphs unless the user explicitly asks for quoted source text.
 - Omit nonessential narrative language and irrelevant identifying or social details unless they change the clinical decision.
+- Remove doctor names, speaker labels, author names, and institutional speaker attributions from workbook fields unless the identity itself is clinically relevant. Preserve the clinical role only when useful.
 - Questions are generated decision prompts and should not be quoted from the article.
 - Local working reports may include source excerpts for audit or highlighting, but downstream RAG/tool calls should use the rewritten workbook content and resource filenames, not raw `source_text/full_text.txt` or `evidence_highlight_report.json`.
 - Run `scripts/audit_source_leakage.py` after the source-alignment audit. Any warning means the field needs a privacy-safe rewrite before final packaging.
@@ -104,6 +107,7 @@ Compatibility:
 
 - Existing example workbooks include `Anwser 4`; accept it. The exporter reproduces this typo by default to match legacy files.
 - Older CR3 workbooks use `Patient record N` / `Clinician recommendation N`; normalize each pair to a consultation with a default question such as `What is the clinician recommendation at this point?`.
+- Legacy templates may refer to `Patient N` blocks. Move treatment recommendations into `Answer N`; move future clinical decisions or follow-up plans into `Record N+1` unless they are final follow-up content.
 
 ## Extraction Heuristics
 
