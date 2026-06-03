@@ -113,6 +113,7 @@ Compatibility notes:
 
 - Existing examples may use `Anwser 4`; scripts accept it and can reproduce it.
 - Ignore example JSON files unless the user explicitly asks to inspect or convert them.
+- Human benchmark packages may use versioned workbook names such as `CR1_v1.0_GWan_Ruiz_NHao.xlsx`. Use these files as references when comparing or normalizing manual extractions, but final generated packages must still emit the main workbook as `CR<ID>.xlsx`.
 - Older CR3-style files may use `Patient record N` and `Clinician recommendation N`; normalize these into the standard stage schema.
 - If filenames and the workbook `CRID` disagree, treat `CRID` as authoritative and preserve existing resource filenames unless the user asks to rename.
 - If source PDF content and workbook content disagree, treat the source PDF as authoritative. Existing example packages can contain cross-case contamination; repair the workbook instead of carrying the mismatch forward.
@@ -195,3 +196,12 @@ The CR5 PDF `Unusual Morphological Presentation of Cutaneous Malignant Melanoma`
 - consider Figure 3 as diagnostic pathology support when staging/diagnosis is discussed;
 - do not add lab tables unless the PDF actually contains those laboratory values;
 - keep the extraction short if the PDF only supports presentation, diagnostic workup, oncology referral/chemotherapy, and death during chemotherapy.
+
+## CR1 Lesson
+
+The CR1 NEJM Case Record `A 57-Year-Old Woman with Melanoma and Fever` is a benchmark for cases with repeated treatment interruption and multiple laboratory snapshots:
+
+- keep the longitudinal split around adjuvant dabrafenib/trametinib initiation, repeated pyrexia episodes, emergency evaluation, hospital course, liver biopsy, final drug-induced liver injury diagnosis, and future melanoma management;
+- preserve multiple laboratory tables as separate source table workbooks when they represent different clinical timepoints, for example baseline labs, emergency-department/severe fever workup, and later hospital-day labs;
+- include Figure 1 for imaging studies and Figure 2 for liver-biopsy pathology when they support the workup and final diagnosis;
+- if the manual reference workbook is versioned, normalize the final workbook filename to `CR1.xlsx` while preserving the manual file only as a benchmark input.
