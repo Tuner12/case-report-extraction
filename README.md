@@ -1,6 +1,6 @@
 # Case Report Extraction
 
-Codex skill for extracting longitudinal medical case reports from PDF articles into a standard case folder.
+Codex and Claude Code skill for extracting longitudinal medical case reports from PDF articles into a standard case folder.
 
 The skill is Excel-first: it creates a main `CR<ID>.xlsx` workbook, an evidence-highlighted `CR<ID>.pdf`, linked figure captions, extracted figure images, and optional source tables. Legacy JSON helper scripts are included only for conversion of old datasets.
 
@@ -8,7 +8,7 @@ Main workbooks use the CR10/example visual style: Calibri 16 pt, alternating blu
 
 Evidence PDFs use sentence-guided keyword or short-phrase highlights instead of whole-paragraph highlights. Figure crops are recropped conservatively from rendered pages when needed so panel labels, axes, captions, and image edges are not cut off.
 
-## Install
+## Install For Codex
 
 Clone the repository and copy the skill folder into your Codex skills directory:
 
@@ -19,6 +19,39 @@ cp -R case-report-extraction/case-report-extraction ~/.codex/skills/
 ```
 
 Restart Codex or reload skills after installation.
+
+## Install For Claude Code
+
+Claude Code skills can be installed as personal skills under `~/.claude/skills/` or as project skills under `.claude/skills/`. This repository includes a Claude Code adapter at `adapters/claude-code/skills/case-report-extraction`; it uses the same scripts and schema, with command examples written for `${CLAUDE_SKILL_DIR}`.
+
+Personal install:
+
+```bash
+git clone https://github.com/Tuner12/case-report-extraction.git
+mkdir -p ~/.claude/skills
+cp -R case-report-extraction/adapters/claude-code/skills/case-report-extraction ~/.claude/skills/
+```
+
+Project install:
+
+```bash
+mkdir -p .claude/skills
+cp -R /path/to/case-report-extraction/adapters/claude-code/skills/case-report-extraction .claude/skills/
+```
+
+In Claude Code, invoke the skill with:
+
+```text
+/case-report-extraction Extract this case report PDF into a complete case folder.
+```
+
+See Anthropic's Claude Code skills documentation: https://code.claude.com/docs/en/skills
+
+The bundled scripts expect a Python environment with `openpyxl`, PyMuPDF, Pillow, OpenCV, and optionally `pypdf`:
+
+```bash
+python -m pip install openpyxl pymupdf pillow opencv-python pypdf
+```
 
 ## Use
 

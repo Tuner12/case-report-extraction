@@ -1,6 +1,6 @@
 ---
 name: case-report-extraction
-description: Extract longitudinal medical case reports from uploaded PDF articles into a standard case folder. Use when Codex or Claude Code needs to process case report PDFs, NEJM Case Records, oncology case reports, clinicopathological cases, or existing CR*.xlsx examples into patient-record/recommendation stages with figures, tables, and workbook deliverables.
+description: Extract longitudinal medical case reports from uploaded PDF articles into a standard case folder. Use when Claude Code needs to process case report PDFs, NEJM Case Records, oncology case reports, clinicopathological cases, or existing CR*.xlsx examples into patient-record/recommendation stages with figures, tables, and workbook deliverables.
 ---
 
 # Case Report Extraction
@@ -11,7 +11,7 @@ Build one complete folder per case report from a PDF. The folder must preserve t
 
 Use the bundled scripts for mechanical work. Use clinical reasoning for the semantic split into patient records, questions, and recommendations.
 
-When running scripts in Codex, use the workspace dependency Python returned by `load_workspace_dependencies` when available. System Python may miss `pypdf` or `openpyxl`; without `pypdf`, `prepare_pdf.py` can still extract text through Poppler but cannot export annotation metadata.
+This is the Claude Code adapter. When running bundled scripts, call them from `${CLAUDE_SKILL_DIR}/scripts/...` so paths work from any user project directory. Use a Python environment with `openpyxl`, PyMuPDF (`fitz`), Pillow, and OpenCV; `pypdf` and Poppler are helpful for source text and annotation extraction.
 
 ## Working Folder
 
@@ -122,51 +122,51 @@ Compatibility notes:
 Prepare PDF text and page renders:
 
 ```bash
-python scripts/prepare_pdf.py input.pdf --out CR10 --case-id CR10 --render-pages
+python "$CLAUDE_SKILL_DIR/scripts/prepare_pdf.py" input.pdf --out CR10 --case-id CR10 --render-pages
 ```
 
 Style the workbook:
 
 ```bash
-python scripts/style_case_workbook.py CR10/CR10.xlsx
-python scripts/style_case_workbook.py CR10/CR10_table1.xlsx --kind table
+python "$CLAUDE_SKILL_DIR/scripts/style_case_workbook.py" CR10/CR10.xlsx
+python "$CLAUDE_SKILL_DIR/scripts/style_case_workbook.py" CR10/CR10_table1.xlsx --kind table
 ```
 
 Audit workbook against source PDF text:
 
 ```bash
-python scripts/audit_source_alignment.py CR10/CR10.xlsx --source-text CR10/source_text/full_text.txt --write-report CR10/source_alignment_report.json
+python "$CLAUDE_SKILL_DIR/scripts/audit_source_alignment.py" CR10/CR10.xlsx --source-text CR10/source_text/full_text.txt --write-report CR10/source_alignment_report.json
 ```
 
 Create the evidence-highlighted PDF:
 
 ```bash
-python scripts/highlight_evidence_pdf.py CR10/CR10.xlsx source_original.pdf --out CR10/CR10.pdf --report CR10/evidence_highlight_report.json
+python "$CLAUDE_SKILL_DIR/scripts/highlight_evidence_pdf.py" CR10/CR10.xlsx source_original.pdf --out CR10/CR10.pdf --report CR10/evidence_highlight_report.json
 ```
 
 Recrop existing figure assets from rendered pages with safer margins:
 
 ```bash
-python scripts/recrop_figures_with_padding.py CR10 --report CR10/figure_recrop_report.json
+python "$CLAUDE_SKILL_DIR/scripts/recrop_figures_with_padding.py" CR10 --report CR10/figure_recrop_report.json
 ```
 
 Validate the case folder:
 
 ```bash
-python scripts/validate_case_folder.py CR10 --workbook CR10/CR10.xlsx
+python "$CLAUDE_SKILL_DIR/scripts/validate_case_folder.py" CR10 --workbook CR10/CR10.xlsx
 ```
 
 Package the final user-facing zip:
 
 ```bash
-python scripts/package_case_folder.py CR10 --out CR10.zip
+python "$CLAUDE_SKILL_DIR/scripts/package_case_folder.py" CR10 --out CR10.zip
 ```
 
 Legacy JSON helpers exist only for conversion work:
 
 ```bash
-python scripts/case_json_to_workbook.py old_case.json --out CR10/CR10.xlsx
-python scripts/workbook_to_case_json.py CR10/CR10.xlsx --out legacy_case.json
+python "$CLAUDE_SKILL_DIR/scripts/case_json_to_workbook.py" old_case.json --out CR10/CR10.xlsx
+python "$CLAUDE_SKILL_DIR/scripts/workbook_to_case_json.py" CR10/CR10.xlsx --out legacy_case.json
 ```
 
 ## Quality Bar
