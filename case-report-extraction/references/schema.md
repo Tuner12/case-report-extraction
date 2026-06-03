@@ -27,10 +27,11 @@ Working-only extraction artifacts:
 | `source_original.pdf` | Optional verbatim working copy of the uploaded source PDF |
 | `validation_report.json` | Validator output |
 | `source_alignment_report.json` | Heuristic source-support audit |
+| `source_leakage_report.json` | Raw-source-copy audit for long contiguous text spans in workbook fields |
 | `evidence_highlight_report.json` | Selected source sentences, keyword matches, and supporting text blocks used to create the highlighted PDF |
 | `figure_recrop_report.json` | Template-match report from conservative figure recropping |
 
-Keep working-only artifacts in the local working folder when useful, but exclude them from user-facing final zips. A final zip should contain the workbook, evidence-highlighted PDF, figure PNG/TXT assets, and table workbooks only. Do not include the original source PDF, `pages/`, `source_text/`, validation reports, source-alignment reports, evidence-highlight reports, figure-recrop reports, or logs unless the user explicitly asks for an audit/debug package.
+Keep working-only artifacts in the local working folder when useful, but exclude them from user-facing final zips. A final zip should contain the workbook, evidence-highlighted PDF, figure PNG/TXT assets, and table workbooks only. Do not include the original source PDF, `pages/`, `source_text/`, validation reports, source-alignment reports, source-leakage reports, evidence-highlight reports, figure-recrop reports, or logs unless the user explicitly asks for an audit/debug package.
 
 If source text and stored extraction disagree, the source PDF wins. A file prefix match is not enough to prove that records, recommendations, figures, or tables belong to the same case.
 
@@ -86,6 +87,18 @@ python scripts/highlight_evidence_pdf.py CR10/CR10.xlsx source_original.pdf --ou
 
 Highlight `Record N`, `Answer N`, and final follow-up evidence. The script should use source sentences to select evidence but mark only the corresponding keywords or short phrases. Generated clinical questions usually do not need highlighting because they are task prompts rather than article facts.
 
+## Privacy-Safe Rewriting Contract
+
+Workbook fields are the RAG-facing clinical abstraction. They should be source-supported, but they should not become a cache of source sentences or paragraphs.
+
+- Rewrite source fragments into complete clinical sentences before writing `Record`, `Answer`, or `Final follow up` fields.
+- Keep clinically important anchors exactly: age, sex, relative timing, dates, drug names, doses, disease stage, mutation status, measurements, laboratory values, diagnostic tests, pathology terms, treatment response, toxicity, and outcomes.
+- Do not copy whole source sentences or paragraphs unless the user explicitly asks for quoted source text.
+- Omit nonessential narrative language and irrelevant identifying or social details unless they change the clinical decision.
+- Questions are generated decision prompts and should not be quoted from the article.
+- Local working reports may include source excerpts for audit or highlighting, but downstream RAG/tool calls should use the rewritten workbook content and resource filenames, not raw `source_text/full_text.txt` or `evidence_highlight_report.json`.
+- Run `scripts/audit_source_leakage.py` after the source-alignment audit. Any warning means the field needs a privacy-safe rewrite before final packaging.
+
 Compatibility:
 
 - Existing example workbooks include `Anwser 4`; accept it. The exporter reproduces this typo by default to match legacy files.
@@ -124,6 +137,14 @@ python scripts/audit_source_alignment.py CR5/CR5.xlsx --source-text CR5/source_t
 The audit is heuristic. It is designed to catch obvious cross-case contamination or unsupported details, not to prove clinical correctness. Low coverage with zero phrase hits is a red flag that the workbook field may not come from the PDF.
 
 For short case reports with heavy paraphrasing, manually inspect warnings. Keep the extraction only if the unsupported terms are explainable from the source article.
+
+Run `scripts/audit_source_leakage.py` to detect long copied spans from the source article:
+
+```bash
+python scripts/audit_source_leakage.py CR5/CR5.xlsx --source-text CR5/source_text/full_text.txt --write-report CR5/source_leakage_report.json
+```
+
+The leakage audit complements source alignment. A good workbook should pass both checks: enough shared clinical anchors to prove support, but no long contiguous source-prose spans.
 
 ## Legacy JSON
 
