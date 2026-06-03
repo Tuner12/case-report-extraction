@@ -13,6 +13,11 @@ try:
 except Exception:  # pragma: no cover - optional when validating folders only.
     load_workbook = None
 
+try:
+    import fitz
+except Exception:  # pragma: no cover - optional PDF annotation validation.
+    fitz = None
+
 
 def consultation_blocks(data: dict) -> list[tuple[str, dict]]:
     blocks = []
@@ -35,6 +40,38 @@ def split_resource_names(value) -> list[str]:
         for name in re.findall(r"[\w.-]+\.(?:png|jpg|jpeg|txt|xlsx|xlsm|pdf)", item, flags=re.IGNORECASE):
             names.append(Path(name).name)
     return names
+
+
+def count_highlight_annotations(pdf: Path) -> int | None:
+    if fitz is None:
+        return None
+    doc = fitz.open(pdf)
+    count = 0
+    for page in doc:
+        annot = page.first_annot
+        while annot:
+            if annot.type and annot.type[1] == "Highlight":
+                count += 1
+            annot = annot.next
+    doc.close()
+    return count
+
+
+def validate_evidence_pdf(folder: Path, case_id: str, errors: list[str], warnings: list[str]) -> dict:
+    expected = folder / f"{case_id}.pdf"
+    report = {"evidence_pdf": str(expected)}
+    if not expected.exists():
+        errors.append(f"Missing final evidence-highlighted PDF: {case_id}.pdf")
+        return report
+    highlight_count = count_highlight_annotations(expected)
+    report["highlight_annotations"] = highlight_count
+    if highlight_count is None:
+        warnings.append("PyMuPDF unavailable; PDF highlight annotations not inspected")
+    elif highlight_count == 0:
+        errors.append(f"Final PDF has no highlight annotations: {case_id}.pdf")
+    if not (folder / "evidence_highlight_report.json").exists():
+        warnings.append("Missing working evidence_highlight_report.json")
+    return report
 
 
 def validate_workbook(folder: Path, workbook: Path | None, errors: list[str], warnings: list[str]) -> dict:
@@ -88,10 +125,10 @@ def main() -> None:
 
     if not folder.exists():
         errors.append("Case folder does not exist")
-    if not any(p.suffix.lower() == ".pdf" for p in folder.glob("*.pdf")):
-        warnings.append("No source PDF found in case folder")
     if folder.exists():
         report.update(validate_workbook(folder, args.workbook, errors, warnings))
+        case_id = str(report.get("CRID_from_workbook") or folder.name)
+        report.update(validate_evidence_pdf(folder, case_id, errors, warnings))
 
     if json_file and json_file.exists():
         data = json.loads(json_file.read_text(encoding="utf-8"))

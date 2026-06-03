@@ -2,7 +2,7 @@
 
 Codex skill for extracting longitudinal medical case reports from PDF articles into a standard case folder.
 
-The skill is Excel-first: it creates a main `CR<ID>.xlsx` workbook, linked figure captions, extracted figure images, and optional source tables. Legacy JSON helper scripts are included only for conversion of old datasets.
+The skill is Excel-first: it creates a main `CR<ID>.xlsx` workbook, an evidence-highlighted `CR<ID>.pdf`, linked figure captions, extracted figure images, and optional source tables. Legacy JSON helper scripts are included only for conversion of old datasets.
 
 Main workbooks use the CR10/example visual style: Calibri 16 pt, alternating blue/gray stage cells, yellow figure row, and green table row.
 
@@ -29,12 +29,12 @@ Use $case-report-extraction to extract this case report PDF into a complete case
 Final delivery zips include:
 
 - `CR<ID>.xlsx`: longitudinal case workbook
-- source `.pdf`: original uploaded PDF, preserved verbatim
+- `CR<ID>.pdf`: evidence-highlighted PDF generated from the uploaded source article
 - `CR<ID>_figureN.png`: extracted figure image
 - `CR<ID>_figureN.txt`: figure caption
 - `CR<ID>_tableN.xlsx`: extracted source table, when the PDF contains tables
 
-During extraction, the working folder may also contain `source_text/`, rendered `pages/`, `validation_report.json`, and `source_alignment_report.json`. These are audit/debug artifacts and should not be included in the user-facing final zip unless explicitly requested.
+During extraction, the working folder may also contain `source_original.pdf`, `source_text/`, rendered `pages/`, `validation_report.json`, `source_alignment_report.json`, and `evidence_highlight_report.json`. These are audit/debug artifacts and should not be included in the user-facing final zip unless explicitly requested.
 
 ## Contribute
 

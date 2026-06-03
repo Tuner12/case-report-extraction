@@ -12,8 +12,10 @@ from pathlib import Path
 WORKING_ONLY_NAMES = {
     "pages",
     "source_text",
+    "source_original.pdf",
     "validation_report.json",
     "source_alignment_report.json",
+    "evidence_highlight_report.json",
 }
 
 
@@ -29,7 +31,7 @@ def is_deliverable(path: Path, case_id: str) -> bool:
     suffix = path.suffix.lower()
     name = path.name
     if suffix == ".pdf":
-        return True
+        return name == f"{case_id}.pdf"
     if suffix == ".xlsx":
         return name == f"{case_id}.xlsx" or is_table_workbook(path)
     if re.fullmatch(rf"{re.escape(case_id)}_figure\d+\.(png|jpg|jpeg|txt)", name, flags=re.IGNORECASE):

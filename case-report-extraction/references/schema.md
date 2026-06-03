@@ -11,7 +11,7 @@ Required for the final delivery package:
 | File | Purpose |
 | --- | --- |
 | `CR<ID>.xlsx` | Main wide workbook with longitudinal stages |
-| source `.pdf` | Original uploaded article, copied verbatim so embedded highlights/annotations are preserved |
+| `CR<ID>.pdf` | Evidence-highlighted PDF created from the uploaded article; highlights must mark source blocks supporting extracted records, answers, and final follow-up |
 | `CR<ID>_figureN.png` | Extracted figure image or carefully cropped page render |
 | `CR<ID>_figureN.txt` | Caption for figure N |
 | `CR<ID>_tableN.xlsx` | Extracted table workbook |
@@ -24,10 +24,12 @@ Working-only extraction artifacts:
 | `source_text/full_text.txt` | Full extracted text |
 | `pages/page-NNN.png` | Rendered pages for visual figure/table cropping |
 | `source_text/annotations.json` | PDF annotation metadata from the source file |
+| `source_original.pdf` | Optional verbatim working copy of the uploaded source PDF |
 | `validation_report.json` | Validator output |
 | `source_alignment_report.json` | Heuristic source-support audit |
+| `evidence_highlight_report.json` | Selected text blocks used to create the highlighted PDF |
 
-Keep working-only artifacts in the local working folder when useful, but exclude them from user-facing final zips. A final zip should mirror the example packages: workbook, original PDF, figure PNG/TXT assets, and table workbooks only. Do not include `pages/`, `source_text/`, validation reports, source-alignment reports, or logs unless the user explicitly asks for an audit/debug package.
+Keep working-only artifacts in the local working folder when useful, but exclude them from user-facing final zips. A final zip should contain the workbook, evidence-highlighted PDF, figure PNG/TXT assets, and table workbooks only. Do not include the original source PDF, `pages/`, `source_text/`, validation reports, source-alignment reports, evidence-highlight reports, or logs unless the user explicitly asks for an audit/debug package.
 
 If source text and stored extraction disagree, the source PDF wins. A file prefix match is not enough to prove that records, recommendations, figures, or tables belong to the same case.
 
@@ -72,6 +74,16 @@ Match the CR10/example workbook appearance:
 - Row 4 is the tables row with `#E2F0D9` fill and thin borders.
 - Use `scripts/style_case_workbook.py` after creating or converting a workbook.
 - Extracted table workbooks should use an explicit Calibri font and avoid unrelated colored fills.
+
+## Evidence PDF Contract
+
+The final package PDF is not a raw copy of the uploaded article. Use `scripts/highlight_evidence_pdf.py` to create `CR<ID>.pdf` from the uploaded source PDF and the completed workbook:
+
+```bash
+python scripts/highlight_evidence_pdf.py CR10/CR10.xlsx source_original.pdf --out CR10/CR10.pdf --report CR10/evidence_highlight_report.json
+```
+
+Highlight `Record N`, `Answer N`, and final follow-up evidence. Generated clinical questions usually do not need highlighting because they are task prompts rather than article facts.
 
 Compatibility:
 
