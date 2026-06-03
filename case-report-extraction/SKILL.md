@@ -1,0 +1,136 @@
+---
+name: case-report-extraction
+description: Extract longitudinal medical case reports from uploaded PDF articles into a standard case folder. Use when Codex needs to process case report PDFs, NEJM Case Records, oncology case reports, clinicopathological cases, or existing CR*.xlsx examples into patient-record/recommendation stages with figures, tables, workbook, and validation artifacts.
+---
+
+# Case Report Extraction
+
+## Purpose
+
+Build one complete folder per case report from a PDF. The folder must preserve the source article, extract the patient timeline into decision stages, attach relevant figures/tables, and emit a main workbook that downstream case-report tooling can consume.
+
+Use the bundled scripts for mechanical work. Use clinical reasoning for the semantic split into patient records, questions, and recommendations.
+
+When running scripts in Codex, use the workspace dependency Python returned by `load_workspace_dependencies` when available. System Python may miss `pypdf` or `openpyxl`; without `pypdf`, `prepare_pdf.py` can still extract text through Poppler but cannot export annotation metadata.
+
+## Output Folder
+
+Create a folder named after the case id, for example `CR10/`, with these files when available:
+
+- `CR<ID>.xlsx`: main longitudinal workbook.
+- `CR<ID>_<source-title>.pdf`: original source PDF copied into the folder.
+- `CR<ID>_figureN.png`: cropped or page-rendered figure assets.
+- `CR<ID>_figureN.txt`: figure caption text when available.
+- `CR<ID>_tableN.xlsx`: one workbook per extracted source table.
+- `source_text/`: page text and metadata from `scripts/prepare_pdf.py`.
+- `source_text/annotations.json`: PDF highlight/stamp metadata when annotations exist.
+- `pages/`: rendered page PNGs when figure/table cropping needs visual inspection.
+- `validation_report.json`: final structural checks from `scripts/validate_case_folder.py`.
+- `source_alignment_report.json`: source-support audit when a source PDF is available.
+
+Read `references/schema.md` before extracting a new PDF or normalizing an existing case.
+
+## Workflow
+
+1. Create the case folder and copy the PDF into it.
+2. Run `scripts/prepare_pdf.py` on the PDF to create `source_text/pages.json`, `source_text/full_text.txt`, `source_text/annotations.json`, and optionally page images.
+3. Read the article text and identify the true case narrative, excluding abstract, discussion-only literature review, references, funding, and unrelated author text.
+4. Split the case into longitudinal clinical decision stages. Each stage should contain:
+   - `Record N`: patient state and newly available data at that point.
+   - `Question N`: the clinical decision question.
+   - `Answer N`: the clinician action, recommendation, treatment, diagnostic test, or management decision that follows.
+   - figure/table references in workbook rows 3 and 4.
+5. Extract figures and tables that are useful for the case state. Use original captions. If exact cropping is difficult, render the page and crop manually or save a page-level image with a clear filename, then document the limitation.
+6. Write `CR<ID>.xlsx` directly in the standard workbook format. Do not create JSON unless the user explicitly asks for it or an old JSON file must be normalized.
+7. Run `scripts/audit_source_alignment.py` against the workbook and source text. Treat failures as a hard stop: records or answers may be from another case, over-paraphrased, or invented.
+8. Run `scripts/validate_case_folder.py` and fix missing links, empty stages, or schema mistakes.
+
+If the PDF contains annotations or highlights, inspect `source_text/annotations.json` and rendered pages. Use highlights as extraction cues only; do not assume color meanings across PDFs and do not let annotations override source text.
+
+## Stage-Splitting Rules
+
+Use a new stage when the article reveals information that would change a clinician's next decision:
+
+- first presentation and initial empiric therapy;
+- persistence/progression after initial therapy;
+- pathology, biopsy, molecular testing, staging imaging, or lab results;
+- treatment selection, surgery, systemic therapy, radiation, adverse effects, relapse, or surveillance;
+- final follow-up or anatomical diagnosis.
+
+Do not split merely because a paragraph changes topic. Merge adjacent sentences when they represent one clinical state before the next management decision.
+
+For NEJM-style Case Records, treat `Presentation of Case`, diagnostic testing, `Discussion of Management`, pathology, treatment course, and final follow-up as source sections, but still output a patient-centered longitudinal sequence.
+
+For short case-report articles, use fewer stages when appropriate. If the article contains only presentation, diagnostic workup, referral/treatment, and outcome, do not fabricate extra stages.
+
+## Workbook Format
+
+The main workbook uses one sheet and a wide layout:
+
+- Row 1: headers.
+- Row 2: case values.
+- Row 3: figure references, with `figures` in column A.
+- Row 4: table references, with `tables` in column A.
+
+Use these headers for the standard format:
+
+`CRID`, then repeating `Record N`, `Question N`, `Answer N`, followed by `Final follow up` or `Final output` when needed.
+
+Compatibility notes:
+
+- Existing examples may use `Anwser 4`; scripts accept it and can reproduce it.
+- Ignore example JSON files unless the user explicitly asks to inspect or convert them.
+- Older CR3-style files may use `Patient record N` and `Clinician recommendation N`; normalize these into the standard stage schema.
+- If filenames and the workbook `CRID` disagree, treat `CRID` as authoritative and preserve existing resource filenames unless the user asks to rename.
+- If source PDF content and workbook content disagree, treat the source PDF as authoritative. Existing example packages can contain cross-case contamination; repair the workbook instead of carrying the mismatch forward.
+
+## Script Usage
+
+Prepare PDF text and page renders:
+
+```bash
+python scripts/prepare_pdf.py input.pdf --out CR10 --case-id CR10 --render-pages
+```
+
+Audit workbook against source PDF text:
+
+```bash
+python scripts/audit_source_alignment.py CR10/CR10.xlsx --source-text CR10/source_text/full_text.txt --write-report CR10/source_alignment_report.json
+```
+
+Validate the case folder:
+
+```bash
+python scripts/validate_case_folder.py CR10 --workbook CR10/CR10.xlsx
+```
+
+Legacy JSON helpers exist only for conversion work:
+
+```bash
+python scripts/case_json_to_workbook.py old_case.json --out CR10/CR10.xlsx
+python scripts/workbook_to_case_json.py CR10/CR10.xlsx --out legacy_case.json
+```
+
+## Quality Bar
+
+Before finalizing:
+
+- Every non-final stage has a non-empty patient record and management answer.
+- Questions are decision-oriented, not generic summaries.
+- Records use article facts and preserve clinically important dates, measurements, diagnoses, drugs, procedures, mutations, response, toxicity, and outcomes.
+- Figures/tables listed in the workbook exist in the case folder.
+- Table workbooks contain source table values with headers.
+- Figure captions are saved in `.txt` files when available.
+- Source-alignment audit has no failed fields, or every warning is manually explained.
+- The final report states any figure/table extraction limitations.
+
+Do not invent facts, dates, staging, mutation status, treatment names, or outcomes. If the PDF omits timing, say that the exact date is not stated.
+
+## CR5 Lesson
+
+The CR5 PDF `Unusual Morphological Presentation of Cutaneous Malignant Melanoma` should be learned from the PDF and figure/table assets, not from accidental JSON files in the example package. For this PDF:
+
+- use Figure 1 for the initial lesion morphology and Figure 2 for rapid nodular progression;
+- consider Figure 3 as diagnostic pathology support when staging/diagnosis is discussed;
+- do not add lab tables unless the PDF actually contains those laboratory values;
+- keep the extraction short if the PDF only supports presentation, diagnostic workup, oncology referral/chemotherapy, and death during chemotherapy.
