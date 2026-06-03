@@ -14,6 +14,7 @@ WORKING_ONLY_NAMES = {
     "source_text",
     "source_original.pdf",
     "validation_report.json",
+    "stage_logic_report.json",
     "source_alignment_report.json",
     "source_leakage_report.json",
     "evidence_highlight_report.json",

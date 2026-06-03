@@ -32,6 +32,7 @@ Working-only artifacts:
 - `source_original.pdf`: optional verbatim copy of the uploaded PDF used as the base for evidence highlighting.
 - `pages/`: rendered page PNGs when figure/table cropping needs visual inspection.
 - `validation_report.json`: final structural checks from `scripts/validate_case_folder.py`.
+- `stage_logic_report.json`: temporal Record/Question/Answer logic audit from `scripts/audit_stage_logic.py`.
 - `source_alignment_report.json`: source-support audit when a source PDF is available.
 - `source_leakage_report.json`: raw-source-copy audit for long contiguous text spans in workbook fields.
 - `evidence_highlight_report.json`: selected source sentences, keyword matches, and supporting PDF text blocks used to create the evidence-highlighted PDF.
@@ -47,7 +48,7 @@ The zip file shared with the user or committed as the final case package must co
 - `CR<ID>_figureN.txt`
 - `CR<ID>_tableN.xlsx`
 
-Do not include `source_original.pdf`, `pages/`, `source_text/`, `validation_report.json`, `source_alignment_report.json`, `source_leakage_report.json`, `evidence_highlight_report.json`, `figure_recrop_report.json`, or other extraction logs in the final delivery zip unless the user explicitly asks for an audit/debug bundle.
+Do not include `source_original.pdf`, `pages/`, `source_text/`, `validation_report.json`, `stage_logic_report.json`, `source_alignment_report.json`, `source_leakage_report.json`, `evidence_highlight_report.json`, `figure_recrop_report.json`, or other extraction logs in the final delivery zip unless the user explicitly asks for an audit/debug bundle.
 
 Read `references/schema.md` before extracting a new PDF or normalizing an existing case.
 
@@ -56,7 +57,7 @@ Read `references/schema.md` before extracting a new PDF or normalizing an existi
 1. Create the case folder and keep the uploaded PDF as the source input. If a local working copy is needed, name it `source_original.pdf` so it does not become a final deliverable.
 2. Run `scripts/prepare_pdf.py` on the PDF to create `source_text/pages.json`, `source_text/full_text.txt`, `source_text/annotations.json`, and optionally page images.
 3. Read the article text and identify the true case narrative, excluding abstract, discussion-only literature review, references, funding, and unrelated author text.
-4. Split the case into longitudinal clinical decision stages. Each stage should contain:
+4. Split the case into longitudinal clinical decision stages. First make a short internal timeline map with `known data -> decision question -> action/recommendation -> new result/outcome`. Then write the workbook stages. Each stage should contain:
    - `Record N`: patient state and newly available data at that point.
    - `Question N`: the clinical decision question.
    - `Answer N`: the clinician action, recommendation, treatment, diagnostic test, or management decision that follows.
@@ -64,11 +65,12 @@ Read `references/schema.md` before extracting a new PDF or normalizing an existi
 5. Extract figures and tables that are useful for the case state. Use original captions. Figure crops must be conservative: include complete left/right/top/bottom edges, panel labels, axes/scale bars, visible figure labels, and caption text when the example package style includes captions. Do not make tight crops; use `scripts/recrop_figures_with_padding.py` or manual recropping from rendered pages if any edge is close to being cut off.
 6. Write `CR<ID>.xlsx` directly in the standard workbook format. Do not create JSON unless the user explicitly asks for it or an old JSON file must be normalized.
 7. Apply the canonical workbook style with `scripts/style_case_workbook.py` so the workbook matches the CR10/example package style.
-8. Run `scripts/audit_source_alignment.py` against the workbook and source text. Treat failures as a hard stop: records or answers may be from another case, over-paraphrased, or invented.
-9. Run `scripts/audit_source_leakage.py` against the workbook and source text. Treat long copied spans as a rewrite task: keep factual anchors, but rewrite the field as a clinical abstraction instead of source prose.
-10. Run `scripts/highlight_evidence_pdf.py` to create `CR<ID>.pdf` from the source PDF and workbook evidence. It should use sentence-level evidence selection but keyword/short-phrase highlight annotations, not paragraph-wide highlights. Inspect `evidence_highlight_report.json` and the rendered PDF if matches are weak or visually too broad.
-11. Run `scripts/validate_case_folder.py` and fix missing links, empty stages, missing highlights, or schema mistakes.
-12. Package a clean delivery zip with `scripts/package_case_folder.py`. The working folder may keep the original source copy, `pages/`, `source_text/`, and reports for review, but the delivery zip must exclude them.
+8. Run `scripts/audit_stage_logic.py` against the workbook. Treat warnings as prompts to manually inspect temporal logic: do not let an answer jump ahead to a later result, and do not let a record include information that should only be known after the question.
+9. Run `scripts/audit_source_alignment.py` against the workbook and source text. Treat failures as a hard stop: records or answers may be from another case, over-paraphrased, or invented.
+10. Run `scripts/audit_source_leakage.py` against the workbook and source text. Treat long copied spans as a rewrite task: keep factual anchors, but rewrite the field as a clinical abstraction instead of source prose.
+11. Run `scripts/highlight_evidence_pdf.py` to create `CR<ID>.pdf` from the source PDF and workbook evidence. It should use sentence-level evidence selection but keyword/short-phrase highlight annotations, not paragraph-wide highlights. Inspect `evidence_highlight_report.json` and the rendered PDF if matches are weak or visually too broad.
+12. Run `scripts/validate_case_folder.py` and fix missing links, empty stages, missing highlights, or schema mistakes.
+13. Package a clean delivery zip with `scripts/package_case_folder.py`. The working folder may keep the original source copy, `pages/`, `source_text/`, and reports for review, but the delivery zip must exclude them.
 
 If the PDF contains annotations or highlights, inspect `source_text/annotations.json` and rendered pages. Use highlights as extraction cues only; do not assume color meanings across PDFs and do not let annotations override source text.
 
@@ -87,6 +89,35 @@ Do not split merely because a paragraph changes topic. Merge adjacent sentences 
 For NEJM-style Case Records, treat `Presentation of Case`, diagnostic testing, `Discussion of Management`, pathology, treatment course, and final follow-up as source sections, but still output a patient-centered longitudinal sequence.
 
 For short case-report articles, use fewer stages when appropriate. If the article contains only presentation, diagnostic workup, referral/treatment, and outcome, do not fabricate extra stages.
+
+## Temporal R/Q/A Logic
+
+Stages must follow clinical decision time, not article paragraph order and not final-diagnosis hindsight.
+
+- `Record N` is what the clinician knows before making decision N. It can include historical facts and results already available at that time, but it must not include the result of the action requested in `Question N` or chosen in `Answer N`.
+- `Question N` is the next clinical decision at that point: what to test, how to treat, whether to admit, what diagnosis to pursue, or what follow-up/treatment to recommend.
+- `Answer N` is the immediate next action or recommendation after `Record N`: order tests, perform imaging/biopsy, start/stop therapy, give fluids/antibiotics, admit, discharge, refer, schedule follow-up, or choose a treatment plan.
+- The result of `Answer N` belongs in `Record N+1`. If `Answer N` says to perform a biopsy, the biopsy pathology should not appear until the next record. If `Answer N` says to start treatment, the response/toxicity should not appear until the next record.
+- Do not let an answer skip over an intermediate decision. In acute presentations, evaluation/workup, immediate stabilization/admission, later diagnostic testing, final diagnosis, and long-term treatment planning are usually separate stages.
+- Do not split just to mirror article headings. Merge text until the next real decision point, then stop the record before the decision action.
+- Final follow-up can summarize downstream outcome, but earlier non-final answers should not include later recurrence, progression, death, or post-discharge outcomes unless the stage is explicitly about follow-up planning.
+
+Common pattern:
+
+```text
+Record N: new symptoms/results now known
+Question N: what should be done next?
+Answer N: order/perform/treat/recommend
+Record N+1: results of that order/procedure/treatment, plus new patient state
+```
+
+Before accepting each stage, run this manual self-check:
+
+- Could a clinician choose `Answer N` using only `Record N`, without relying on facts that first appear in `Record N+1` or later?
+- Is `Question N` the real next decision, or was it rewritten to justify an answer that belongs later?
+- If `Answer N` includes treatment/admission, does `Record N` already include enough severity, vital-sign, laboratory, imaging, or clinical context to justify that action?
+- If `Answer N` includes diagnostic certainty, does `Record N` already include the diagnostic evidence, or should the answer instead be "perform the diagnostic test"?
+- Are test orders and test results split correctly? Orders belong in `Answer N`; results belong in `Record N+1`.
 
 ## Privacy-Safe Rewriting
 
@@ -159,6 +190,12 @@ Audit workbook for long raw source-copy spans:
 python "$CLAUDE_SKILL_DIR/scripts/audit_source_leakage.py" CR10/CR10.xlsx --source-text CR10/source_text/full_text.txt --write-report CR10/source_leakage_report.json
 ```
 
+Audit temporal Record/Question/Answer logic:
+
+```bash
+python "$CLAUDE_SKILL_DIR/scripts/audit_stage_logic.py" CR10/CR10.xlsx --write-report CR10/stage_logic_report.json
+```
+
 Create the evidence-highlighted PDF:
 
 ```bash
@@ -200,6 +237,7 @@ Before finalizing:
 - Figures/tables listed in the workbook exist in the case folder.
 - Table workbooks contain source table values with headers.
 - Figure captions are saved in `.txt` files when available.
+- Stage-logic audit has been inspected; warnings are either fixed or explicitly understood.
 - Source-alignment audit has no failed fields, or every warning is manually explained.
 - Source-leakage audit has no long copied spans, or every warning is manually rewritten before packaging.
 - `CR<ID>.pdf` is an evidence-highlighted PDF with keyword/short-phrase highlight annotations guided by source sentences supporting the extracted records, answers, and final follow-up. Whole-paragraph highlights are not acceptable.

@@ -26,12 +26,13 @@ Working-only extraction artifacts:
 | `source_text/annotations.json` | PDF annotation metadata from the source file |
 | `source_original.pdf` | Optional verbatim working copy of the uploaded source PDF |
 | `validation_report.json` | Validator output |
+| `stage_logic_report.json` | Temporal Record/Question/Answer logic audit |
 | `source_alignment_report.json` | Heuristic source-support audit |
 | `source_leakage_report.json` | Raw-source-copy audit for long contiguous text spans in workbook fields |
 | `evidence_highlight_report.json` | Selected source sentences, keyword matches, and supporting text blocks used to create the highlighted PDF |
 | `figure_recrop_report.json` | Template-match report from conservative figure recropping |
 
-Keep working-only artifacts in the local working folder when useful, but exclude them from user-facing final zips. A final zip should contain the workbook, evidence-highlighted PDF, figure PNG/TXT assets, and table workbooks only. Do not include the original source PDF, `pages/`, `source_text/`, validation reports, source-alignment reports, source-leakage reports, evidence-highlight reports, figure-recrop reports, or logs unless the user explicitly asks for an audit/debug package.
+Keep working-only artifacts in the local working folder when useful, but exclude them from user-facing final zips. A final zip should contain the workbook, evidence-highlighted PDF, figure PNG/TXT assets, and table workbooks only. Do not include the original source PDF, `pages/`, `source_text/`, validation reports, stage-logic reports, source-alignment reports, source-leakage reports, evidence-highlight reports, figure-recrop reports, or logs unless the user explicitly asks for an audit/debug package.
 
 If source text and stored extraction disagree, the source PDF wins. A file prefix match is not enough to prove that records, recommendations, figures, or tables belong to the same case.
 
@@ -113,6 +114,41 @@ Use the source article's chronology. For each stage:
 3. If the article presents the action before the data because of narrative style, reorder into patient-centered chronology only when the source clearly supports it.
 4. Preserve exact dates, relative times, drug doses, test names, lesion sizes, staging, mutations, adverse effects, response, and outcome.
 5. Avoid literature review content unless it explains the clinician's decision in this patient.
+
+## Temporal R/Q/A Logic
+
+The workbook should represent a clinical decision timeline:
+
+```text
+known patient state -> decision question -> immediate action/recommendation -> new result/outcome
+```
+
+Rules:
+
+- `Record N` contains only information available before decision N.
+- `Question N` asks the next clinical decision at that point.
+- `Answer N` gives the immediate action/recommendation that follows from `Record N`.
+- Results of the answer belong in `Record N+1`, not in the same answer. For example, if the answer is to perform biopsy, pathology appears in the next record; if the answer is to start therapy, response/toxicity appears in the next record.
+- Do not skip intermediate decisions. Acute evaluation/workup, initial stabilization/admission, later diagnostic testing, final diagnosis, and downstream treatment planning are usually separate stages.
+- Do not use final-diagnosis hindsight to write early records or answers.
+- Earlier non-final answers should not contain downstream recurrence, progression, death, or post-discharge outcomes.
+- It is acceptable for a record to mention prior treatments or prior decisions when they are now part of the patient's known history.
+
+Self-check each stage:
+
+- Could a clinician choose `Answer N` using only `Record N`?
+- Is `Question N` the real next decision, or was it rewritten to justify an answer that belongs later?
+- If `Answer N` includes treatment/admission, does `Record N` include enough severity, vital-sign, laboratory, imaging, or clinical context?
+- If `Answer N` includes diagnostic certainty, does `Record N` already include the diagnostic evidence?
+- Are test orders and test results split correctly?
+
+Run the temporal audit after creating the workbook:
+
+```bash
+python scripts/audit_stage_logic.py CR5/CR5.xlsx --write-report CR5/stage_logic_report.json
+```
+
+The audit is heuristic; use it to trigger manual inspection rather than as a substitute for clinical review.
 
 ## Figure and Table Handling
 
