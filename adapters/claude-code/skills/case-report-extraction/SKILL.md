@@ -11,7 +11,7 @@ Build one complete folder per case report from a PDF. The folder must preserve t
 
 Use the bundled scripts for mechanical work. Use clinical reasoning for the semantic split into patient records, questions, and recommendations.
 
-This is the Claude Code adapter. When running bundled scripts, call them from `${CLAUDE_SKILL_DIR}/scripts/...` so paths work from any user project directory. Use a Python environment with `openpyxl`, PyMuPDF (`fitz`), Pillow, and OpenCV; `pypdf` and Poppler are helpful for source text and annotation extraction.
+This is the Claude Code adapter. When running bundled scripts, call them from `${CLAUDE_SKILL_DIR}/scripts/...` so paths work from any user project directory. Use a Python environment with `openpyxl`, PyMuPDF (`fitz`), Pillow, and OpenCV; `pypdf` and Poppler are helpful for source text extraction. Input PDF annotations and pre-existing highlights are deliberately ignored.
 
 ## Working Folder
 
@@ -28,7 +28,6 @@ Final deliverables:
 Working-only artifacts:
 
 - `source_text/`: page text and metadata from `scripts/prepare_pdf.py`.
-- `source_text/annotations.json`: PDF highlight/stamp metadata when annotations exist.
 - `source_original.pdf`: optional verbatim copy of the uploaded PDF used as the base for evidence highlighting.
 - `pages/`: rendered page PNGs when figure/table cropping needs visual inspection.
 - `validation_report.json`: final structural checks from `scripts/validate_case_folder.py`.
@@ -59,7 +58,7 @@ Read `references/schema.md` before extracting a new PDF or normalizing an existi
 ## Workflow
 
 1. Create the case folder and keep the uploaded PDF as the source input. If a local working copy is needed, name it `source_original.pdf` so it does not become a final deliverable.
-2. Run `scripts/prepare_pdf.py` on the PDF to create `source_text/pages.json`, `source_text/full_text.txt`, `source_text/annotations.json`, and optionally page images.
+2. Run `scripts/prepare_pdf.py` on the PDF to create `source_text/pages.json`, `source_text/full_text.txt`, and optionally page images. If the input PDF already contains highlights, comments, stamps, or other annotations, ignore them and read only the underlying page text and rendered page content.
 3. Read the article text and identify the true case narrative, excluding abstract, discussion-only literature review, references, funding, and unrelated author text.
 4. Split the case into longitudinal clinical decision stages. First make a short internal timeline map with `known data -> decision question -> action/recommendation -> new result/outcome`. Then write the workbook stages. Each stage should contain:
    - `Record N`: patient state and newly available data at that point.
@@ -77,7 +76,7 @@ Read `references/schema.md` before extracting a new PDF or normalizing an existi
 12. Run `scripts/validate_case_folder.py` and fix missing links, empty stages, missing highlights, or schema mistakes.
 13. Package a clean delivery zip with `scripts/package_case_folder.py`. The working folder may keep the original source copy, `pages/`, `source_text/`, and reports for review, but the delivery zip must exclude them.
 
-If the PDF contains annotations or highlights, inspect `source_text/annotations.json` and rendered pages. Use highlights as extraction cues only; do not assume color meanings across PDFs and do not let annotations override source text.
+If the input PDF contains annotations or highlights, do not inspect or use them as extraction cues. Treat the uploaded file as the raw source article: extract from the underlying text, figures, and tables only. Final evidence highlights must be generated later from workbook-supported evidence by `scripts/highlight_evidence_pdf.py`.
 
 ## Stage-Splitting Rules
 

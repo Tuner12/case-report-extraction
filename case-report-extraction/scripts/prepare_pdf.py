@@ -51,41 +51,6 @@ def extract_with_pypdf(pdf: Path) -> list[dict]:
     return pages
 
 
-def serializable_pdf_value(value):
-    if value is None or isinstance(value, (str, int, float, bool)):
-        return value
-    if isinstance(value, (list, tuple)):
-        return [serializable_pdf_value(item) for item in value]
-    try:
-        return list(value)
-    except Exception:
-        return str(value)
-
-
-def extract_annotations(pdf: Path) -> list[dict]:
-    if PdfReader is None:
-        return []
-    reader = PdfReader(str(pdf))
-    annotations = []
-    for page_number, page in enumerate(reader.pages, start=1):
-        annots = page.get("/Annots")
-        if annots:
-            annots = annots.get_object() if hasattr(annots, "get_object") else annots
-        for annot in annots or []:
-            obj = annot.get_object()
-            annotations.append(
-                {
-                    "page": page_number,
-                    "subtype": str(obj.get("/Subtype", "")),
-                    "color": serializable_pdf_value(obj.get("/C")),
-                    "rect": serializable_pdf_value(obj.get("/Rect")),
-                    "quadpoints": serializable_pdf_value(obj.get("/QuadPoints")),
-                    "contents": obj.get("/Contents"),
-                }
-            )
-    return annotations
-
-
 def poppler_page_count(pdf: Path) -> int:
     pdfinfo = shutil.which("pdfinfo")
     if not pdfinfo:
@@ -151,12 +116,8 @@ def main() -> None:
         json.dumps(pages, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     (source_text / "full_text.txt").write_text("".join(full_text_parts).strip(), encoding="utf-8")
-    annotations = extract_annotations(pdf)
-    (source_text / "annotations.json").write_text(
-        json.dumps(annotations, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    metadata["annotations"] = len(annotations)
-    metadata["annotation_extraction"] = "pypdf" if PdfReader is not None else "unavailable"
+    metadata["input_annotations"] = "ignored"
+    metadata["annotation_extraction"] = "disabled"
 
     if args.render_pages:
         metadata["rendered_pages"] = render_pages(pdf, out / "pages", args.dpi)

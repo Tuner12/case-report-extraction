@@ -23,7 +23,6 @@ Working-only extraction artifacts:
 | `source_text/pages.json` | Page-by-page text from the PDF |
 | `source_text/full_text.txt` | Full extracted text |
 | `pages/page-NNN.png` | Rendered pages for visual figure/table cropping |
-| `source_text/annotations.json` | PDF annotation metadata from the source file |
 | `source_original.pdf` | Optional verbatim working copy of the uploaded source PDF |
 | `validation_report.json` | Validator output |
 | `stage_logic_report.json` | Temporal Record/Question/Answer logic audit |
@@ -39,6 +38,8 @@ Working-only extraction artifacts:
 Keep working-only artifacts in the local working folder when useful, but exclude them from user-facing final zips. A final zip should contain the workbook, evidence-highlighted PDF, figure PNG/TXT assets, and table workbooks only. Do not include the original source PDF, `pages/`, `source_text/`, validation reports, stage-logic reports, source-alignment reports, source-leakage reports, evidence-highlight reports, figure/table audit reports, contact sheets, previews, or logs unless the user explicitly asks for an audit/debug package.
 
 If source text and stored extraction disagree, the source PDF wins. A file prefix match is not enough to prove that records, recommendations, figures, or tables belong to the same case.
+
+Input PDF annotations are not part of the extraction contract. If an uploaded PDF already contains highlights, comments, stamps, or other annotations, ignore them and extract from the underlying article text, figures, and tables only. The only highlights that matter for final delivery are the evidence highlights generated from the completed workbook.
 
 ## Workbook Contract
 
